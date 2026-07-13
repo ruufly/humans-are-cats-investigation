@@ -20,6 +20,7 @@
     "serve": "node server.mjs"
   },
   "dependencies": {
+    "@fontsource/space-mono": "^5.2.9",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

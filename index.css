@@ -2,17 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --font-mono: "Space Mono", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
 body {
   background:
     radial-gradient(circle at 20% 18%, rgba(34, 211, 238, 0.16), transparent 26rem),
     radial-gradient(circle at 80% 12%, rgba(244, 114, 182, 0.11), transparent 22rem),
     #050510;
   overflow: hidden;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-family: var(--font-mono);
 }
 
 .pixel-font {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-family: var(--font-mono);
   letter-spacing: 0;
 }
 
