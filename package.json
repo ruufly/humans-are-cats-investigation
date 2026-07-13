@@ -2,7 +2,7 @@
   "name": "humans-are-cats-investigation",
   "version": "0.0.0",
   "description": "VOCALOID-themed stealth investigation platformer with a DeepSeek-powered Hatsune Miku NPC.",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/Lucas-on-the-code/humans-are-cats-investigation.git"

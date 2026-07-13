@@ -23,3 +23,7 @@ There is no dedicated test suite yet. For gameplay changes, also verify the game
 - Do not add compatibility shims for old versions of the game. Remove obsolete code when replacing behavior.
 - Keep runtime VOCALOID data offline under `public/data/`.
 - Never commit real `.env`, API keys, local database files, logs, or generated `dist/` output.
+
+## Contribution license
+
+By submitting a contribution, you confirm that you have the right to provide it and agree to license your contribution under the repository's [PolyForm Noncommercial License 1.0.0](LICENSE). Do not submit third-party code, data, artwork, audio, characters, trademarks, or other material unless its license permits the intended use and all required notices are included.
