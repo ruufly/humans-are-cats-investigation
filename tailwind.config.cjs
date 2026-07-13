@@ -6,23 +6,7 @@ module.exports = {
     "./components/**/*.{ts,tsx}",
   ],
   theme: {
-    extend: {
-      fontFamily: {
-        mono: [
-          "Space Mono",
-          "PingFang SC",
-          "Microsoft YaHei",
-          "Noto Sans SC",
-          "ui-monospace",
-          "SFMono-Regular",
-          "Menlo",
-          "Monaco",
-          "Consolas",
-          "Liberation Mono",
-          "monospace",
-        ],
-      },
-    },
+    extend: {},
   },
   plugins: [],
 };

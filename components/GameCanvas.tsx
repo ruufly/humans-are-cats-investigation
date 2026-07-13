@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   COLORS,
   GRAVITY,
@@ -334,6 +335,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   sfxVolume,
   touchInputRef,
 }) => {
+  const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [dims, setDims] = useState(getViewportDims);
@@ -671,7 +673,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     p.isGrounded = false;
     statsRef.current.startedAt = Date.now();
     emitIntroLeaves(p.x + p.width / 2, p.y + p.height * 0.55);
-    addFloatingText('GO', p.x + p.width / 2, p.y - 12, '#bbf7d0', 20);
+    addFloatingText(t('float_go'), p.x + p.width / 2, p.y - 12, '#bbf7d0', 20);
     playSound('JUMP');
     onRunIntroStart();
   };
@@ -703,10 +705,13 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const openNpcChat = (npc: NPC) => {
     const isMiku = npc.chatKind === 'miku';
     const kind = isMiku ? 'miku' : 'random';
+    const lineKey = isMiku
+      ? pickRandomLine(MIKU_CHAT_OPENING_LINES)
+      : pickRandomLine(RANDOM_NPC_CHAT_LINES);
     onNpcChatStart({
       kind,
-      speaker: isMiku ? '初音未来' : npc.label || '路人',
-      lines: [isMiku ? pickRandomLine(MIKU_CHAT_OPENING_LINES) : pickRandomLine(RANDOM_NPC_CHAT_LINES)],
+      speaker: isMiku ? t('npc_miku_name') : t(npc.labelKey),
+      lines: [t(lineKey)],
       isInvite: isMiku,
       image: isMiku ? MIKU_NPC_IMAGE : undefined,
       anchor: getNpcChatAnchor(npc, kind),
@@ -715,10 +720,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   };
 
   const openPedestrianChat = (pedestrian: DecorativePedestrian) => {
+    const lineKey = pickRandomLine(RANDOM_NPC_CHAT_LINES);
     onNpcChatStart({
       kind: 'random',
-      speaker: '路人',
-      lines: [pickRandomLine(RANDOM_NPC_CHAT_LINES)],
+      speaker: t('npc_pedestrian'),
+      lines: [t(lineKey)],
       anchor: getNpcChatAnchor(pedestrian, 'random'),
       target: { type: 'pedestrian', id: pedestrian.id, kind: 'random' },
     });
@@ -757,16 +763,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const hasFreerideBonus = stats.taxiRides >= TAXI_FREERIDE_THRESHOLD;
     const score = Math.floor(stats.score + (hasFreerideBonus ? TAXI_FREERIDE_BONUS : 0));
     const title = hasFreerideBonus
-      ? '白嫖打车王'
+      ? t('title_taxi_king')
       : stats.bestCombo >= 28
-        ? '连击狂热'
+        ? t('title_combo_frenzy')
         : stats.nearMisses >= 8
-          ? '擦边大师'
+          ? t('title_graze_master')
           : getDistanceMeters(stats.distance) >= 180
-            ? '远距调查员'
+            ? t('title_long_distance')
             : stats.evidence >= 6
-              ? '证据猎手'
-              : '见习调查员';
+              ? t('title_evidence_hunter')
+              : t('title_trainee');
     onGameOver({
       score,
       distance: getDistanceMeters(stats.distance),
@@ -802,7 +808,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     damageCooldown: 0,
     scanHits: 0,
     maxScanHits: 1,
-    label: '巡逻',
+    labelKey: 'npc_patrol',
     ...overrides,
   });
 
@@ -815,7 +821,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     visionRange: 0,
     visionHeight: 0,
     maxScanHits: 1,
-    label: '初音未来',
+    labelKey: 'npc_miku_name',
     dialogText: MIKU_CHAT_OPENING_LINES,
     chatKind: 'miku',
     spriteKey: 'decor_npc_v2_0',
@@ -923,13 +929,13 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     obstaclesRef.current.push({ id: nextId(), x, y: VIRTUAL_GROUND_Y - 86, width, height: 28, type: 'LOW_BAR', damage, passed: false });
   };
 
-  const addPatrolNpc = (x: number, groundNpcY: number, startX: number, heat: number, label = '巡查') => {
+  const addPatrolNpc = (x: number, groundNpcY: number, startX: number, heat: number, labelKey = 'npc_patrol') => {
     npcsRef.current.push(makeNpc(x, groundNpcY, {
       patrolStart: Math.max(startX + 40, x - 90),
       patrolEnd: Math.min(startX + CHUNK_LENGTH - 40, x + 150),
       vx: (0.75 + heat * 0.8) * (Math.random() < 0.5 ? 1 : -1),
       visionRange: 215 + heat * 80,
-      label,
+      labelKey,
     }));
   };
 
@@ -944,7 +950,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       height: hard ? 90 : 80,
       vx: (-0.55 - heat * 0.45) * (Math.random() < 0.5 ? 1 : -1),
       visionRange: hard ? 285 : 235,
-      label: hard ? '首领' : '目标',
+      labelKey: hard ? 'npc_leader' : 'npc_target',
     }));
   };
 
@@ -1027,7 +1033,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       weight: 1.05,
       danger: 1,
       build: (_index, startX, heat, groundNpcY) => {
-        addPatrolNpc(startX + 150, groundNpcY, startX, heat, '快巡');
+        addPatrolNpc(startX + 150, groundNpcY, startX, heat, 'npc_patrol');
         addPickup(startX + 350, GROUND_COIN_Y, Math.random() < 0.4 ? 'MAGNET' : 'FISH');
         addTargetNpc(startX + 520, groundNpcY, startX, heat, heat > 0.55);
       },
@@ -1066,7 +1072,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       weight: 1.05,
       danger: 2,
       build: (_index, startX, heat, groundNpcY) => {
-        addPatrolNpc(startX + 145, groundNpcY, startX, heat, '巡查');
+        addPatrolNpc(startX + 145, groundNpcY, startX, heat, 'npc_patrol');
         addLowBar(startX + 350, 104, 14);
         addTargetNpc(startX + 565, groundNpcY, startX, heat, heat > 0.65);
         addPickup(startX + 485, GROUND_COIN_Y, Math.random() < 0.45 ? 'MAGNET' : 'FISH');
@@ -1364,7 +1370,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       if (p.shieldTime > 0) {
         p.shieldTime = 0;
         screenShakeRef.current = 6;
-        addFloatingText('SHIELD', p.x, p.y - 20, '#66f2c2', 18);
+        addFloatingText(t('float_shield'), p.x, p.y - 20, '#66f2c2', 18);
         playSound('DASH');
         return;
       }
@@ -1387,7 +1393,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         p.slideTime = 0;
         p.invulnerableTime = DEATH_ANIM_MAX_MS + 500;
         screenShakeRef.current = 18;
-        addFloatingText('MISS', p.x + p.width / 2, p.y - 24, '#ff6b8a', 24);
+        addFloatingText(t('float_miss'), p.x + p.width / 2, p.y - 24, '#ff6b8a', 24);
         playSound('DEATH');
         return;
       }
@@ -1401,30 +1407,30 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       playSound('COLLECT');
       if (it.type === 'HEALTH') {
         p.hp = Math.min(p.maxHp, p.hp + COMBAT.HEALTH_PACK_HEAL);
-        addFloatingText('HEAL', it.x, it.y, '#66f2c2', 16);
+        addFloatingText(t('float_heal'), it.x, it.y, '#66f2c2', 16);
         emitParticles(it.x + 15, it.y + 15, '#66f2c2', 10, 5);
         return;
       }
       if (it.type === 'MAGNET') {
         p.magnetTime = BOOST_TIME;
-        awardScore(180, 'MAGNET', it.x, it.y);
+        awardScore(180, t('float_magnet'), it.x, it.y);
         emitParticles(it.x + 15, it.y + 15, '#9ee6ff', 12, 6);
         return;
       }
       if (it.type === 'SHIELD') {
         p.shieldTime = BOOST_TIME;
-        awardScore(180, 'SHIELD', it.x, it.y);
+        awardScore(180, t('float_shield'), it.x, it.y);
         emitParticles(it.x + 15, it.y + 15, '#66f2c2', 12, 6);
         return;
       }
       if (it.type === 'EVIDENCE') {
         statsRef.current.evidence++;
         p.evidenceCollected = statsRef.current.evidence;
-        awardScore(1000, 'DATA', it.x, it.y);
+        awardScore(1000, t('float_data'), it.x, it.y);
         emitParticles(it.x + 15, it.y + 15, '#FFD700', 16, 7);
         return;
       }
-      awardScore(90, 'FISH', it.x, it.y);
+      awardScore(90, t('float_fish'), it.x, it.y);
       emitParticles(it.x + 15, it.y + 15, '#ffe066', 6, 4);
     };
 
@@ -1466,8 +1472,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         scheduleLoop();
         return;
       }
-      // R2: cap delta so a single physics step can't tunnel through thin obstacles
-      // (AABB is single-frame, no sweep). 33ms ≈ dtScale 2; full sub-stepping is a follow-up.
       const clampedDelta = Math.min(deltaMs, 33);
       const dtScale = clampedDelta / BASE_FRAME_MS;
       lastFrameTime = now;
@@ -1619,8 +1623,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           p.y = ridingCar.y - p.height;
           p.vx = ridingCar.cruiseVx;
           p.invulnerableTime = Math.max(p.invulnerableTime, 450);
-          awardScore(620, 'TAXI RIDE', p.x, p.y - 20);
-          addFloatingText('下车', p.x + p.width / 2, p.y - 28, '#9ee6ff', 18);
+          awardScore(620, t('float_taxi_ride'), p.x, p.y - 20);
+          addFloatingText(t('float_dismount'), p.x + p.width / 2, p.y - 28, '#9ee6ff', 18);
         }
       } else {
       if (!isTextInputActive && (keys['shift'] || touch.dash) && p.dashCooldown <= 0 && !p.isDashing) {
@@ -1708,7 +1712,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         p.isSliding = false;
         p.isDashing = false;
         stats.taxiRides++;
-        const taxiText = stats.taxiRides >= TAXI_FREERIDE_THRESHOLD ? '白嫖达成' : `搭上出租车 ${stats.taxiRides}/${TAXI_FREERIDE_THRESHOLD}`;
+        const taxiText = stats.taxiRides >= TAXI_FREERIDE_THRESHOLD
+          ? t('float_taxi_free')
+          : t('float_taxi_board_progress', { count: stats.taxiRides, threshold: TAXI_FREERIDE_THRESHOLD });
         addFloatingText(taxiText, p.x + p.width / 2, p.y - 28, '#66f2c2', 18);
         playSound('COLLECT');
       }
@@ -1719,8 +1725,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           .filter((npc) => !npc.scanned && npc.chatKind === 'miku' && rectsOverlap(playerHitbox, getNpcTalkZone(npc)))
           .map((npc) => npc.id)
       );
-      // I7: deleting the current element during Set.forEach is defined behavior per spec
-      // (deletes of already-visited elements are no-ops; unvisited ones are skipped).
       mikuProximityRef.current.forEach((id) => {
         if (!nearbyMikuIds.has(id)) mikuProximityRef.current.delete(id);
       });
@@ -1734,7 +1738,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           p.vx = 0;
           p.isDashing = false;
           p.isSliding = false;
-          addFloatingText('CHAT?', autoTalkMiku.x + autoTalkMiku.width / 2, autoTalkMiku.y - 38, '#67e8f9', 16);
+          addFloatingText(t('float_chat'), autoTalkMiku.x + autoTalkMiku.width / 2, autoTalkMiku.y - 38, '#67e8f9', 16);
           openNpcChat(autoTalkMiku);
           return;
         }
@@ -1748,7 +1752,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           p.vx = 0;
           p.isDashing = false;
           p.isSliding = false;
-          addFloatingText('TALK', talkNpc.x + talkNpc.width / 2, talkNpc.y - 38, '#9ee6ff', 16);
+          addFloatingText(t('float_talk'), talkNpc.x + talkNpc.width / 2, talkNpc.y - 38, '#9ee6ff', 16);
           openNpcChat(talkNpc);
           return;
         }
@@ -1759,7 +1763,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           p.vx = 0;
           p.isDashing = false;
           p.isSliding = false;
-          addFloatingText('TALK', talkPedestrian.x + talkPedestrian.width / 2, talkPedestrian.y - 34, '#9ee6ff', 16);
+          addFloatingText(t('float_talk'), talkPedestrian.x + talkPedestrian.width / 2, talkPedestrian.y - 34, '#9ee6ff', 16);
           openPedestrianChat(talkPedestrian);
           return;
         }
@@ -1797,7 +1801,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           obstacle.passed = true;
           if (Math.abs(hitbox.y + hitbox.height - (obstacle.y + obstacle.height)) < 70) {
             stats.nearMisses++;
-            awardScore(180, 'NEAR', obstacle.x, obstacle.y - 12);
+            awardScore(180, t('float_near'), obstacle.x, obstacle.y - 12);
           }
         }
         if (rectsOverlap(hitbox, obstacle)) {
@@ -1811,7 +1815,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           hazard.passed = true;
           if (hitbox.y + hitbox.height > hazard.y - 46) {
             stats.nearMisses++;
-            awardScore(220, 'NEAR', hazard.x, hazard.y - 10);
+            awardScore(220, t('float_near'), hazard.x, hazard.y - 10);
           }
         }
         if (isHazardActive(hazard, now) && rectsOverlap(hitbox, hazard)) {
@@ -1863,7 +1867,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       });
 
       projectilesRef.current.forEach((pr) => {
-        if (pr.life <= 0) return; // R4: don't move/iterate an already-dead projectile
+        if (pr.life <= 0) return;
         pr.x += pr.vx * dtScale;
         pr.life -= dtScale;
         if (pr.life <= 0) return;
@@ -1878,7 +1882,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
               n.scanned = true;
               n.alertLevel = 0;
               stats.scans++;
-              awardScore(n.isTarget ? 700 : 240, n.isTarget ? 'SCAN TARGET' : 'SCAN', n.x, n.y - 8);
+              awardScore(n.isTarget ? 700 : 240, n.isTarget ? t('float_scan_target') : t('float_scan'), n.x, n.y - 8);
               if (n.isTarget) addPickup(n.x + n.width / 2 - 15, n.y + 10, 'EVIDENCE');
             } else {
               n.alertLevel = Math.min(100, n.alertLevel + 24);
@@ -2054,7 +2058,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           ctx.textAlign = 'center';
           ctx.font = 'bold 12px monospace';
           ctx.fillStyle = '#9ee6ff';
-          ctx.fillText('E 对话', ped.x + ped.width / 2, ped.y - 14 + Math.sin(now / 180) * 3);
+          ctx.fillText(t('prompt_talk_e'), ped.x + ped.width / 2, ped.y - 14 + Math.sin(now / 180) * 3);
           ctx.restore();
         }
       });
@@ -2129,7 +2133,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           ctx.fillText('!', obstacle.x + obstacle.width / 2, obstacle.y + 21);
           ctx.fillStyle = '#fde047';
           ctx.font = 'bold 10px monospace';
-          ctx.fillText('危险', obstacle.x + obstacle.width / 2, obstacle.y - 8 + Math.sin(now / 180) * 2);
+          ctx.fillText(t('hint_danger'), obstacle.x + obstacle.width / 2, obstacle.y - 8 + Math.sin(now / 180) * 2);
         }
       });
 
@@ -2156,11 +2160,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.textAlign = 'center';
         ctx.font = 'bold 11px monospace';
         ctx.fillStyle = n.isTarget ? '#FFD700' : '#b6c5d6';
-        ctx.fillText(n.scanned ? '已猫化' : n.label, n.x + n.width / 2, n.y - 24);
+        ctx.fillText(n.scanned ? t('status_scanned') : t(n.labelKey), n.x + n.width / 2, n.y - 24);
         if (!n.scanned && n.chatKind === 'miku' && rectsOverlap(getPlayerHitbox(), getNpcTalkZone(n))) {
           ctx.fillStyle = '#67e8f9';
           ctx.font = 'bold 12px monospace';
-          ctx.fillText('想聊天', n.x + n.width / 2, n.y - 38 + Math.sin(now / 180) * 3);
+          ctx.fillText(t('prompt_miku_chat'), n.x + n.width / 2, n.y - 38 + Math.sin(now / 180) * 3);
         }
         if (!n.scanned) {
           const pipStart = n.x + n.width / 2 - (n.maxScanHits * 9) / 2 + 4;
@@ -2274,7 +2278,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           ctx.textAlign = 'center';
           ctx.font = 'bold 13px monospace';
           ctx.fillStyle = '#66f2c2';
-          ctx.fillText('按 E/↓ 搭出租车', car.x + car.width / 2, car.y - 12 + Math.sin(now / 180) * 4);
+          ctx.fillText(t('prompt_taxi_board'), car.x + car.width / 2, car.y - 12 + Math.sin(now / 180) * 4);
         }
         ctx.restore();
       });
@@ -2336,15 +2340,15 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.fillText(`${Math.floor(stats.score).toLocaleString()}`, 44, 62);
       ctx.fillStyle = '#dbeafe';
       ctx.font = 'bold 12px monospace';
-      ctx.fillText(`DIST ${getDistanceMeters(stats.distance)}m`, 44, 86);
-      ctx.fillText(`DATA ${stats.evidence}`, 164, 86);
-      ctx.fillText(`NEAR ${stats.nearMisses}`, 254, 86);
+      ctx.fillText(`${t('hud_distance')} ${getDistanceMeters(stats.distance)}m`, 44, 86);
+      ctx.fillText(`${t('hud_data')} ${stats.evidence}`, 164, 86);
+      ctx.fillText(`${t('hud_near')} ${stats.nearMisses}`, 254, 86);
       ctx.fillStyle = 'rgba(255,255,255,0.11)';
       ctx.fillRect(44, 106, 232, 12);
       ctx.fillStyle = pl.hp < 35 ? '#ff3355' : COLORS.hpBarPlayer;
       ctx.fillRect(44, 106, 232 * (pl.hp / pl.maxHp), 12);
       ctx.fillStyle = '#dbeafe';
-      ctx.fillText(`HP ${Math.ceil(pl.hp)}/${pl.maxHp}`, 44, 101);
+      ctx.fillText(`${t('hud_hp')} ${Math.ceil(pl.hp)}/${pl.maxHp}`, 44, 101);
       ctx.fillStyle = 'rgba(255,255,255,0.11)';
       ctx.fillRect(44, 136, 232, 8);
       const comboRemain = stats.combo > 0 ? Math.max(0, 1 - (Date.now() - stats.lastComboAt) / COMBO_WINDOW_MS) : 0;
@@ -2352,12 +2356,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.fillRect(44, 136, 232 * comboRemain, 8);
       ctx.fillStyle = stats.combo > 0 ? '#ffb703' : '#64748b';
       ctx.font = 'bold 16px monospace';
-      ctx.fillText(`COMBO x${stats.combo}  MULT ${stats.multiplier.toFixed(2)}`, 44, 166);
+      ctx.fillText(`${t('hud_combo')} x${stats.combo}  ${t('hud_mult')} ${stats.multiplier.toFixed(2)}`, 44, 166);
       if (pl.shieldTime > 0 || pl.magnetTime > 0) {
         ctx.fillStyle = '#66f2c2';
         ctx.font = 'bold 12px monospace';
-        const shield = pl.shieldTime > 0 ? `SHIELD ${Math.ceil(pl.shieldTime / 1000)}s` : '';
-        const magnet = pl.magnetTime > 0 ? `MAGNET ${Math.ceil(pl.magnetTime / 1000)}s` : '';
+        const shield = pl.shieldTime > 0 ? `${t('hud_shield')} ${Math.ceil(pl.shieldTime / 1000)}s` : '';
+        const magnet = pl.magnetTime > 0 ? `${t('hud_magnet')} ${Math.ceil(pl.magnetTime / 1000)}s` : '';
         ctx.fillText(`${shield} ${magnet}`.trim(), 44, 190);
       }
 
@@ -2369,7 +2373,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       } else {
         ctx.fillStyle = '#4cc9f0';
         ctx.font = '12px monospace';
-        ctx.fillText('DASH READY', 24, 226);
+        ctx.fillText(t('hud_dash_ready'), 24, 226);
       }
 
       if (introDropRef.current.phase === 'waiting') {
@@ -2381,8 +2385,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.lineWidth = 3;
         ctx.strokeStyle = 'rgba(15, 23, 42, 0.66)';
         ctx.fillStyle = 'rgba(236, 253, 245, 0.9)';
-        ctx.strokeText('按任意键开始游戏', promptX, promptY);
-        ctx.fillText('按任意键开始游戏', promptX, promptY);
+        ctx.strokeText(t('prompt_press_any_key'), promptX, promptY);
+        ctx.fillText(t('prompt_press_any_key'), promptX, promptY);
         ctx.restore();
       }
       ctx.restore();
@@ -2405,12 +2409,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
   if (!isLoaded) return (
     <div className="flex flex-col items-center justify-center h-screen w-screen bg-[#050510] gap-6">
-      <div className="text-cyan-500 font-mono text-2xl animate-pulse tracking-widest uppercase">Initializing CAT_NET...</div>
+      <div className="text-cyan-500 font-mono text-2xl animate-pulse tracking-widest uppercase">{t('loading_init')}</div>
       <div className="w-64 h-2 bg-slate-800 rounded-full overflow-hidden relative">
         <div className="absolute inset-0 bg-cyan-500/30 animate-[shimmer_2s_infinite]"></div>
         <div className="h-full bg-cyan-500 shadow-[0_0_10px_#06b6d4] transition-all duration-500" style={{ width: '60%' }}></div>
       </div>
-      <div className="text-slate-500 font-mono text-xs animate-pulse">正在同步现实世界与猫星通讯...</div>
+      <div className="text-slate-500 font-mono text-xs animate-pulse">{t('loading_sync')}</div>
     </div>
   );
 

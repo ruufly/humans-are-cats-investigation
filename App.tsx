@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GameCanvas } from './components/GameCanvas';
 import { DialogBox } from './components/DialogBox';
 import { GameState, LeaderboardEntry, NpcChatSession, RunSummary, TouchInput } from './types';
 import { LYRICS, IDLE_SPRITE_URLS } from './constants';
 import { gameAudio } from './utils/audioSystem';
+import { useTranslation } from 'react-i18next';
 import {
   buildMikuMemoryBrief,
   commitMikuMemoryEndResult,
@@ -16,6 +16,15 @@ import {
   syncAccountMikuMemoryFromServer,
 } from './utils/mikuMemory';
 import type { MikuMemoryEndResult } from './utils/mikuMemory';
+import ReactDOM from 'react-dom/client';
+import './i18n';
+import { CustomNpc } from './types';
+
+const languages = [
+  { code: 'zh', labelKey: 'lang_zh' },
+  { code: 'en', labelKey: 'lang_en' },
+  { code: 'ja', labelKey: 'lang_ja' },
+];
 
 const AUTH_TOKEN_KEY = 'cat_investigation_auth_token_v1';
 
@@ -213,7 +222,7 @@ const cleanText = (value: unknown, maxLength = 240) => String(value ?? '').repla
 const normalizeLookupText = (value: unknown) => cleanText(value, 200)
   .toLowerCase()
   .normalize('NFKC')
-  .replace(/[《》「」『』“”"'’‘`´·・\s_\-—–,.，。:：/／\\|｜()[\]（）【】!?！？♡☆★]/gu, '');
+  .replace(/[《》「」『』“”"'’‘`´·・\s_\-—–,.，。:：/／\\|｜()[\]（）【】!？!？♡☆★]/gu, '');
 const foldAmbiguousLookupText = (value: string) => value
   .replace(/[0０]/g, 'o')
   .replace(/[1１]/g, 'l')
@@ -231,127 +240,17 @@ const HOT_SONG_QUERY_ALIASES: Record<string, string[]> = {
 };
 
 const CURATED_VOCALOID_CLASSICS: BiliboardHotSong[] = [
-  {
-    title: 'メルト',
-    aliases: ['メルト', 'Melt'],
-    producers: ['ryo'],
-    vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
-    bvids: [],
-    bilibiliUrls: [],
-    bestRank: 1,
-    appearances: 40,
-    searchText: 'メルト melt ryo supercell 初音ミク 初音未来 miku hatsune miku',
-  },
-  {
-    title: 'ワールドイズマイン',
-    aliases: ['ワールドイズマイン', 'World is Mine', '世界第一公主殿下', '世界で一番おひめさま'],
-    producers: ['ryo'],
-    vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
-    bvids: [],
-    bilibiliUrls: [],
-    bestRank: 1,
-    appearances: 40,
-    searchText: 'ワールドイズマイン world is mine 世界第一公主殿下 世界で一番おひめさま ryo supercell 初音ミク 初音未来 miku hatsune miku',
-  },
-  {
-    title: '初音ミクの消失',
-    aliases: ['初音ミクの消失', '初音未来的消失', 'The Disappearance of Hatsune Miku', '消失'],
-    producers: ['cosMo@暴走P'],
-    vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
-    bvids: [],
-    bilibiliUrls: [],
-    bestRank: 1,
-    appearances: 40,
-    searchText: '初音ミクの消失 初音未来的消失 the disappearance of hatsune miku 消失 cosmo@暴走p 初音ミク 初音未来 miku hatsune miku',
-  },
-  {
-    title: 'Ievan Polkka',
-    aliases: ['Ievan Polkka', 'Levan Polkka', '甩葱歌', 'イエヴァン・ポルッカ'],
-    producers: ['Otomania'],
-    vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
-    bvids: [],
-    bilibiliUrls: [],
-    bestRank: 1,
-    appearances: 40,
-    searchText: 'ievan polkka levan polkka 甩葱歌 イエヴァンポルッカ otomania 初音ミク 初音未来 miku hatsune miku',
-  },
-  {
-    title: 'Tell Your World',
-    aliases: ['Tell Your World'],
-    producers: ['kz'],
-    vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
-    bvids: [],
-    bilibiliUrls: [],
-    bestRank: 1,
-    appearances: 40,
-    searchText: 'tell your world kz livetune 初音ミク 初音未来 miku hatsune miku',
-  },
-  {
-    title: '炉心融解',
-    aliases: ['炉心融解', 'Roshin Yuukai', 'Meltdown'],
-    producers: ['iroha(sasaki)'],
-    vocalists: ['鏡音リン', '镜音铃', 'Kagamine Rin'],
-    bvids: [],
-    bilibiliUrls: [],
-    bestRank: 1,
-    appearances: 40,
-    searchText: '炉心融解 roshin yuukai meltdown iroha sasaki kuma 鏡音リン 镜音铃 kagamine rin',
-  },
-  {
-    title: 'ローリンガール',
-    aliases: ['ローリンガール', 'Rolling Girl', 'Rolling Girl／ローリンガール'],
-    producers: ['wowaka'],
-    vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
-    bvids: [],
-    bilibiliUrls: [],
-    bestRank: 1,
-    appearances: 40,
-    searchText: 'ローリンガール rolling girl wowaka 初音ミク 初音未来 miku hatsune miku',
-  },
-  {
-    title: 'マトリョシカ',
-    aliases: ['マトリョシカ', 'Matryoshka', '俄罗斯套娃'],
-    producers: ['ハチ'],
-    vocalists: ['初音ミク', 'GUMI', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
-    bvids: [],
-    bilibiliUrls: [],
-    bestRank: 1,
-    appearances: 40,
-    searchText: 'マトリョシカ matryoshka 俄罗斯套娃 ハチ hachi 米津玄師 初音ミク gumi 初音未来 miku hatsune miku',
-  },
-  {
-    title: '砂の惑星',
-    aliases: ['砂の惑星', 'Sand Planet', '沙之惑星'],
-    producers: ['ハチ'],
-    vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
-    bvids: [],
-    bilibiliUrls: [],
-    bestRank: 1,
-    appearances: 40,
-    searchText: '砂の惑星 sand planet 沙之惑星 ハチ hachi 米津玄師 初音ミク 初音未来 miku hatsune miku',
-  },
-  {
-    title: 'ゴーストルール',
-    aliases: ['ゴーストルール', 'Ghost Rule', '幽灵法则'],
-    producers: ['DECO*27'],
-    vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
-    bvids: [],
-    bilibiliUrls: [],
-    bestRank: 1,
-    appearances: 40,
-    searchText: 'ゴーストルール ghost rule 幽灵法则 deco*27 初音ミク 初音未来 miku hatsune miku',
-  },
-  {
-    title: 'ヒビカセ',
-    aliases: ['ヒビカセ', 'Hibikase'],
-    producers: ['ギガ', 'Reol'],
-    vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
-    bvids: [],
-    bilibiliUrls: [],
-    bestRank: 1,
-    appearances: 40,
-    searchText: 'ヒビカセ hibikase ギガ giga reol 初音ミク 初音未来 miku hatsune miku',
-  },
+  { title: 'メルト', aliases: ['メルト', 'Melt'], producers: ['ryo'], vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: 'メルト melt ryo supercell 初音ミク 初音未来 miku hatsune miku' },
+  { title: 'ワールドイズマイン', aliases: ['ワールドイズマイン', 'World is Mine', '世界第一公主殿下', '世界で一番おひめさま'], producers: ['ryo'], vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: 'ワールドイズマイン world is mine 世界第一公主殿下 世界で一番おひめさま ryo supercell 初音ミク 初音未来 miku hatsune miku' },
+  { title: '初音ミクの消失', aliases: ['初音ミクの消失', '初音未来的消失', 'The Disappearance of Hatsune Miku', '消失'], producers: ['cosMo@暴走P'], vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: '初音ミクの消失 初音未来的消失 the disappearance of hatsune miku 消失 cosmo@暴走p 初音ミク 初音未来 miku hatsune miku' },
+  { title: 'Ievan Polkka', aliases: ['Ievan Polkka', 'Levan Polkka', '甩葱歌', 'イエヴァン・ポルッカ'], producers: ['Otomania'], vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: 'ievan polkka levan polkka 甩葱歌 イエヴァンポルッカ otomania 初音ミク 初音未来 miku hatsune miku' },
+  { title: 'Tell Your World', aliases: ['Tell Your World'], producers: ['kz'], vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: 'tell your world kz livetune 初音ミク 初音未来 miku hatsune miku' },
+  { title: '炉心融解', aliases: ['炉心融解', 'Roshin Yuukai', 'Meltdown'], producers: ['iroha(sasaki)'], vocalists: ['鏡音リン', '镜音铃', 'Kagamine Rin'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: '炉心融解 roshin yuukai meltdown iroha sasaki kuma 鏡音リン 镜音铃 kagamine rin' },
+  { title: 'ローリンガール', aliases: ['ローリンガール', 'Rolling Girl', 'Rolling Girl／ローリンガール'], producers: ['wowaka'], vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: 'ローリンガール rolling girl wowaka 初音ミク 初音未来 miku hatsune miku' },
+  { title: 'マトリョシカ', aliases: ['マトリョシカ', 'Matryoshka', '俄罗斯套娃'], producers: ['ハチ'], vocalists: ['初音ミク', 'GUMI', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: 'マトリョシカ matryoshka 俄罗斯套娃 ハチ hachi 米津玄師 初音ミク gumi 初音未来 miku hatsune miku' },
+  { title: '砂の惑星', aliases: ['砂の惑星', 'Sand Planet', '沙之惑星'], producers: ['ハチ'], vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: '砂の惑星 sand planet 沙之惑星 ハチ hachi 米津玄師 初音ミク 初音未来 miku hatsune miku' },
+  { title: 'ゴーストルール', aliases: ['ゴーストルール', 'Ghost Rule', '幽灵法则'], producers: ['DECO*27'], vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: 'ゴーストルール ghost rule 幽灵法则 deco*27 初音ミク 初音未来 miku hatsune miku' },
+  { title: 'ヒビカセ', aliases: ['ヒビカセ', 'Hibikase'], producers: ['ギガ', 'Reol'], vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: 'ヒビカセ hibikase ギガ giga reol 初音ミク 初音未来 miku hatsune miku' },
 ];
 
 const expandHotSongQueries = (queries: string[]) => {
@@ -372,6 +271,7 @@ const expandHotSongQueries = (queries: string[]) => {
   });
   return [...new Set(expanded)].slice(0, 8);
 };
+
 
 const stripSongQueryNoise = (value: string) => cleanText(value, 160)
   .replace(/这首歌|這首歌|这歌|這歌|这曲|這曲|歌曲|曲子|歌名|歌词|歌詞|lyrics?/giu, ' ')
@@ -968,6 +868,7 @@ const NpcChatBox: React.FC<{
   onSend: (text: string) => void;
   onStartChat: () => void;
 }> = ({ chat, onClose, onDeclineInvite, onSend, onStartChat }) => {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState('');
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const isMiku = chat.kind === 'miku';
@@ -1012,17 +913,17 @@ const NpcChatBox: React.FC<{
           <div ref={messagesRef} className={`${isMiku ? 'max-h-36 md:max-h-44' : 'max-h-28'} overflow-y-auto space-y-1 pr-1`}>
             {chat.messages.map((message, idx) => (
               <p key={idx} className={`text-xs md:text-sm leading-snug ${message.role === 'user' ? 'text-sky-200' : 'text-slate-100'}`}>
-                <span className={message.role === 'user' ? 'text-sky-300 mr-1' : 'text-cyan-300 mr-1'}>{message.role === 'user' ? '你' : '>'}</span>
-                {message.content}
+                <span className={message.role === 'user' ? 'text-sky-300 mr-1' : 'text-cyan-300 mr-1'}>{message.role === 'user' ? t('npc_user_prefix') : t('npc_assistant_prefix')}</span>
+                {t(message.content)}
               </p>
             ))}
-            {chat.isLoading && <p className="text-cyan-300 text-xs animate-pulse">初音未来正在想...</p>}
+            {chat.isLoading && <p className="text-cyan-300 text-xs animate-pulse">{t('npc_miku_thinking')}</p>}
             {chat.error && <p className="text-slate-400 text-[11px]">{chat.error}</p>}
           </div>
           {isMiku && chat.isInvite ? (
             <div className="flex justify-end gap-2">
-              <button onClick={onDeclineInvite} className="px-3 py-1 game-button-secondary rounded-md text-xs font-bold">等一下</button>
-              <button onClick={onStartChat} className="px-3 py-1 game-button rounded-md text-xs font-bold">一起聊天</button>
+              <button onClick={onDeclineInvite} className="px-3 py-1 game-button-secondary rounded-md text-xs font-bold">{t('npc_invite_wait')}</button>
+              <button onClick={onStartChat} className="px-3 py-1 game-button rounded-md text-xs font-bold">{t('npc_invite_chat')}</button>
             </div>
           ) : isMiku ? (
             <form onSubmit={submit} className="flex gap-2">
@@ -1031,12 +932,12 @@ const NpcChatBox: React.FC<{
                 onChange={(e) => setDraft(e.target.value)}
                 disabled={chat.isLoading}
                 className="min-w-0 flex-1 game-input rounded-md px-2 py-1 text-xs"
-                placeholder="说点什么..."
+                placeholder={t('npc_input_placeholder')}
               />
-              <button disabled={chat.isLoading || !draft.trim()} className="px-3 py-1 game-button rounded-md text-white text-xs font-bold disabled:opacity-40">发送</button>
+              <button disabled={chat.isLoading || !draft.trim()} className="px-3 py-1 game-button rounded-md text-white text-xs font-bold disabled:opacity-40">{t('npc_send')}</button>
             </form>
           ) : (
-            <button onClick={onClose} className="self-end text-cyan-200 hover:text-white px-1 py-0.5 text-xs animate-pulse font-bold">▼ 继续</button>
+            <button onClick={onClose} className="self-end text-cyan-200 hover:text-white px-1 py-0.5 text-xs animate-pulse font-bold">{t('npc_continue')}</button>
           )}
         </div>
       </div>
@@ -1045,6 +946,7 @@ const NpcChatBox: React.FC<{
 };
 
 const TypewriterEffect: React.FC<{ text: string[], onComplete: () => void }> = ({ text, onComplete }) => {
+  const { t } = useTranslation();
   const [displayedLines, setDisplayedLines] = useState<string[]>([]);
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [charIndex, setCharIndex] = useState(0);
@@ -1095,7 +997,7 @@ const TypewriterEffect: React.FC<{ text: string[], onComplete: () => void }> = (
       {displayedLines.map((line, i) => <div key={i} className="min-h-[1.5em]">{line}</div>)}
       {!isFinished && <span className="inline-block w-2 h-4 bg-emerald-300 animate-pulse ml-1"></span>}
       <div className="text-right text-xs text-emerald-400/70 mt-4 animate-pulse">
-        {isFinished ? '[点击继续]' : '[点击任意处跳过]'}
+        {isFinished ? t('typewriter_continue') : t('typewriter_skip')}
       </div>
     </div>
   );
@@ -1118,6 +1020,7 @@ const isSafariBrowser = () => {
 };
 
 const App: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const [gameState, setGameState] = useState<GameState>('MENU');
   const [dialogLines, setDialogLines] = useState<string[]>([]);
   const [dialogImage, setDialogImage] = useState<string | undefined>(undefined);
@@ -1161,8 +1064,22 @@ const App: React.FC = () => {
   const lastChatAnchorUpdateRef = useRef(0);
   const lastChatAnchorRef = useRef<{ x: number; y: number } | null>(null);
   const safariCompatMode = isSafariBrowser();
+  const [customNpcs, setCustomNpcs] = useState<CustomNpc[]>([]);
+  const [customPedestrianImage, setCustomPedestrianImage] = useState<string | null>(null);
+  const [customPedestrianDialogs, setCustomPedestrianDialogs] = useState<string[]>([]);
 
   const touchInputRef = useRef<TouchInput>({ left: false, right: false, up: false, down: false, action: false, attack: false, interact: false, dash: false });
+
+  const [isOpen, setIsOpen] = useState(false);
+  const currentLang = i18n.language;
+
+  const menuRef = useRef<HTMLDivElement>(null);
+  const currentLangLabel = t(languages.find(lang => lang.code === i18n.language)?.labelKey || 'lang_zh');
+
+  const handleSelect = (code: string) => {
+    i18n.changeLanguage(code);
+    setIsOpen(false);
+  };
 
   const authHeaders = (extra: Record<string, string> = {}) => ({
     ...extra,
@@ -1213,12 +1130,12 @@ const App: React.FC = () => {
           localStorage.removeItem(AUTH_TOKEN_KEY);
         }
       } catch {
-        if (!cancelled) setAuthMessage('账号状态暂时同步失败');
+        if (!cancelled) setAuthMessage(t('auth_sync_fail'));
       }
     };
     void loadMe();
     return () => { cancelled = true; };
-  }, [authToken]);
+  }, [authToken, t]);
 
   useEffect(() => {
     if (!authToken || !authUser?.id) return;
@@ -1227,12 +1144,12 @@ const App: React.FC = () => {
       try {
         await syncAccountMikuMemoryFromServer(authToken, authUser.id);
       } catch {
-        if (!cancelled) setAuthMessage('Miku 记忆同步暂时失败');
+        if (!cancelled) setAuthMessage(t('miku_memory_sync_fail'));
       }
     };
     void syncMikuMemory();
     return () => { cancelled = true; };
-  }, [authToken, authUser?.id]);
+  }, [authToken, authUser?.id, t]);
 
   const sha256Hex = async (text: string) => {
     const data = new TextEncoder().encode(text);
@@ -1260,19 +1177,19 @@ const App: React.FC = () => {
     }
     setAuthToken(token);
     setAuthUser(user);
-    setAuthMessage(`已登录：${user.username}`);
+    setAuthMessage(t('logged_in_as_message', { username: user.username }));
     setIsAuthModalOpen(false);
     try {
       localStorage.setItem(AUTH_TOKEN_KEY, token);
     } catch {
-      // Auth still works in memory when local storage is unavailable.
+      // ignore
     }
   };
 
   const submitAuth = async () => {
     if (authBusy) return;
     setAuthBusy(true);
-    setAuthMessage(authMode === 'register' ? '正在注册...' : '正在登录...');
+    setAuthMessage(authMode === 'register' ? t('auth_registering') : t('auth_logging_in'));
     try {
       let pow: { nonce: string; answer: string } | undefined;
       if (authMode === 'register') {
@@ -1293,17 +1210,13 @@ const App: React.FC = () => {
       saveAuth(data.token, data.user, authMode === 'register');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'AUTH_FAILED';
-      const friendly = message === 'USERNAME_TAKEN'
-        ? '这个名字已经被用了'
-        : message === 'BAD_PASSWORD'
-          ? '密码至少需要 8 位'
-          : message === 'BAD_USERNAME'
-            ? '用户名需要 3 到 18 位，只能用文字、数字、下划线或短横线'
-            : message === 'REGISTER_RATE_LIMITED'
-              ? '注册太频繁了，稍等一会再试'
-              : message === 'BAD_CREDENTIALS'
-                ? '用户名或密码不对'
-                : '账号请求失败，等一下再试';
+      const friendly = 
+        message === 'USERNAME_TAKEN' ? t('auth_username_taken') :
+        message === 'BAD_PASSWORD' ? t('auth_bad_password') :
+        message === 'BAD_USERNAME' ? t('auth_bad_username') :
+        message === 'REGISTER_RATE_LIMITED' ? t('auth_rate_limited') :
+        message === 'BAD_CREDENTIALS' ? t('auth_bad_credentials') :
+        t('auth_generic_fail');
       setAuthMessage(friendly);
     } finally {
       setAuthBusy(false);
@@ -1319,7 +1232,7 @@ const App: React.FC = () => {
     try {
       localStorage.removeItem(AUTH_TOKEN_KEY);
     } catch {
-      // Nothing to clear.
+      // ignore
     }
   };
 
@@ -1331,12 +1244,12 @@ const App: React.FC = () => {
     const token = tokenOverride || authToken;
     if (!lastRunSummary || !token || uploadBusy || uploadedScoreId) return;
     if (!currentRunToken) {
-      setAuthMessage('这一局没有拿到服务端令牌，不能上传到全球榜');
+      setAuthMessage(t('run_no_token'));
       return;
     }
     setUploadBusy(true);
     setUploadAttemptedRunToken(currentRunToken);
-    setAuthMessage('正在上传成绩...');
+    setAuthMessage(t('uploading_score'));
     try {
       const res = await fetch('/api/leaderboard/submit', {
         method: 'POST',
@@ -1352,16 +1265,13 @@ const App: React.FC = () => {
       setViewerLeaderboardEntry(data.viewerBest ?? data.entry);
       if (Array.isArray(data.entries)) setGlobalLeaderboard(data.entries.slice(0, 50));
       else void fetchGlobalLeaderboard();
-      setAuthMessage('成绩已上传到全球排行榜');
+      setAuthMessage(t('upload_success'));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'UPLOAD_FAILED';
-      const friendly = message === 'RUN_ALREADY_SUBMITTED'
-        ? '这一局已经上传过了'
-        : message === 'LOGIN_REQUIRED'
-          ? '登录后才能上传成绩'
-          : message === 'SCORE_TOO_HIGH' || message === 'DISTANCE_TOO_HIGH' || message === 'TIME_TRAVEL'
-            ? '服务端觉得这一局数据不合理，已拒绝上传'
-            : '成绩上传失败，稍后再试';
+      const friendly = message === 'RUN_ALREADY_SUBMITTED' ? t('upload_already_submitted') :
+        message === 'LOGIN_REQUIRED' ? t('upload_login_required') :
+        message === 'SCORE_TOO_HIGH' || message === 'DISTANCE_TOO_HIGH' || message === 'TIME_TRAVEL' ? t('upload_score_rejected') :
+        t('upload_fail_generic');
       setAuthMessage(friendly);
     } finally {
       setUploadBusy(false);
@@ -1433,7 +1343,7 @@ const App: React.FC = () => {
         if (data.runToken) setCurrentRunToken(data.runToken);
       })
       .catch(() => {
-        setAuthMessage('本局未连接到服务端，结束后只能保存本地成绩');
+        setAuthMessage(t('run_server_disconnected'));
       });
   };
 
@@ -1482,8 +1392,6 @@ const App: React.FC = () => {
   };
 
   const declineNpcChatInvite = () => {
-    // R5: read from the render-scope closure. Never call setState inside another
-    // setter's updater — updaters must be pure (StrictMode double-invokes them).
     if (activeNpcChat?.isInvite && activeNpcChat.target?.type === 'npc' && activeNpcChat.target.kind === 'miku') {
       const dismissedId = activeNpcChat.target.id;
       setDismissedMikuIds((prev) => {
@@ -1544,20 +1452,10 @@ const App: React.FC = () => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const lyrics = await res.json() as LyricLookupResult;
       rememberLyricsForSong(song, lyrics);
-      logMikuLookup('lyrics-prefetch', {
-        song: song.name,
-        found: lyrics.found,
-        title: lyrics.title,
-        lyricLineCount: lyrics.lyricLineCount,
-        error: lyrics.error,
-      });
+      logMikuLookup('lyrics-prefetch', { song: song.name, found: lyrics.found, title: lyrics.title, lyricLineCount: lyrics.lyricLineCount, error: lyrics.error });
       return lyrics;
     } catch (error) {
-      const lyrics: LyricLookupResult = {
-        query: song.name,
-        found: false,
-        error: error instanceof Error ? error.message : 'LYRICS_LOOKUP_FAILED',
-      };
+      const lyrics: LyricLookupResult = { query: song.name, found: false, error: error instanceof Error ? error.message : 'LYRICS_LOOKUP_FAILED' };
       rememberLyricsForSong(song, lyrics);
       return lyrics;
     }
@@ -1581,11 +1479,7 @@ const App: React.FC = () => {
       if (!lookup.results.length) return;
       const key = getLookupMemoryKey(lookup);
       if (!key) return;
-      entries.set(key, {
-        key,
-        lookup,
-        expiresAtTurn: turn + 3,
-      });
+      entries.set(key, { key, lookup, expiresAtTurn: turn + 3 });
     });
     recentSongLookupRef.current = [...entries.values()].filter((entry) => entry.expiresAtTurn >= turn).slice(-8);
   };
@@ -1628,11 +1522,7 @@ const App: React.FC = () => {
         if (lyrics.title) lyricCacheRef.current.set(normalizeLookupText(lyrics.title), lyrics);
         contexts.push(lyrics);
       } catch (error) {
-        contexts.push({
-          query,
-          found: false,
-          error: error instanceof Error ? error.message : 'LYRICS_LOOKUP_FAILED',
-        });
+        contexts.push({ query, found: false, error: error instanceof Error ? error.message : 'LYRICS_LOOKUP_FAILED' });
       }
     }
     return contexts;
@@ -1664,6 +1554,7 @@ const App: React.FC = () => {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as MikuChatApiResponse;
+      // ... rest of the logic remains the same
       if (data.action === 'memory_search' && Array.isArray(data.queries) && data.queries.length > 0) {
         const memorySearchResults = data.queries.flatMap((query) => searchMikuTopicMemory(query, memoryScope));
         const uniqueMemorySearchResults = [...new Map(memorySearchResults.map((result) => [`${result.sessionId}:${result.topicId}`, result])).values()].slice(0, 3);
@@ -1707,15 +1598,9 @@ const App: React.FC = () => {
       }
       else throw new Error('EMPTY_REPLY');
     } catch (sendError) {
-      error = sendError instanceof Error ? `连接暂时不可用：${sendError.message}` : '连接暂时不可用。';
+      error = t('miku_connection_unavailable', { message: sendError instanceof Error ? sendError.message : '' });
     }
 
-    // R3: only apply if the active chat still carries the exact messages array we
-    // sent from (reference equality). Closing/reopening a miku session creates a
-    // new messages array → bail, so a stale reply can't clobber the new conversation
-    // or strand its isLoading. Anchor/invite updates use {...current} and preserve
-    // the reference, so they don't false-bail. (memoryScope alone is NOT a session
-    // identity — it's stable across same-account chats; per codex review.)
     setActiveNpcChat((current) => {
       if (!current || current.kind !== 'miku') return current;
       if (current.messages !== nextMessages) return current;
@@ -1788,6 +1673,34 @@ const App: React.FC = () => {
     };
   }, [canAutoHideCursor]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+  return () => {
+    customNpcs.forEach((npc) => {
+      if (npc.imageUrl && npc.imageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(npc.imageUrl);
+      }
+    });
+  };
+}, [customNpcs]);
+
+useEffect(() => {
+  return () => {
+    if (customPedestrianImage && customPedestrianImage.startsWith('blob:')) {
+      URL.revokeObjectURL(customPedestrianImage);
+    }
+  };
+}, [customPedestrianImage]);
+
   const displayedGlobalLeaderboard = globalLeaderboard.slice(0, 50);
   const viewerIsInTopList = !!viewerLeaderboardEntry && displayedGlobalLeaderboard.some((entry) => entry.id === viewerLeaderboardEntry.id);
   const shouldMountGameCanvas = gameState !== 'MENU';
@@ -1795,34 +1708,129 @@ const App: React.FC = () => {
   return (
     <div ref={appShellRef} className={`fixed inset-0 bg-[#050510] overflow-hidden font-mono selection:bg-cyan-500 selection:text-black ${shouldHideCursor ? 'cursor-none' : 'cursor-auto'}`}>
       {shouldHideCursor && <style>{'* { cursor: none !important; }'}</style>}
-      <button aria-label="系统设置" onClick={() => setIsSettingsOpen(true)} className="absolute top-5 right-5 z-50 h-11 w-11 rounded-full game-panel text-white text-lg hover:border-cyan-300/70 transition-all active:scale-95">⚙</button>
+      <button aria-label={t('settings_title')} onClick={() => setIsSettingsOpen(true)} className="absolute top-5 right-5 z-50 h-11 w-11 rounded-full game-panel text-white text-lg hover:border-cyan-300/70 transition-all active:scale-95">⚙</button>
 
       {isSettingsOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/90 p-4">
           <div className="game-panel-strong p-6 md:p-8 rounded-lg w-full max-w-sm text-white">
-            <h2 className="text-2xl font-bold mb-7 pixel-font text-center text-cyan-200">系统设置</h2>
+            <h2 className="text-2xl font-bold mb-7 pixel-font text-center text-cyan-200">{t('settings_title')}</h2>
             <div className="mb-7">
               <label className="text-slate-300 text-sm font-bold mb-3 flex justify-between">
-                <span>主音量</span>
+                <span>{t('master_volume')}</span>
                 <span className="text-cyan-400">{Math.round(masterVolume * 100)}%</span>
               </label>
               <input type="range" min="0" max="1" step="0.05" value={masterVolume} onChange={(e) => setMasterVolume(parseFloat(e.target.value))} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400" />
             </div>
             <div className="mb-7">
               <label className="text-slate-300 text-sm font-bold mb-3 flex justify-between">
-                <span>音效音量</span>
+                <span>{t('sfx_volume')}</span>
                 <span className="text-cyan-400">{Math.round(sfxVolume * 100)}%</span>
               </label>
               <input type="range" min="0" max="1" step="0.05" value={sfxVolume} onChange={(e) => setSfxVolume(parseFloat(e.target.value))} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400" />
             </div>
             <div className="mb-8">
               <label className="text-slate-300 text-sm font-bold mb-3 flex justify-between">
-                <span>音乐音量</span>
+                <span>{t('music_volume')}</span>
                 <span className="text-cyan-400">{Math.round(musicVolume * 100)}%</span>
               </label>
               <input type="range" min="0" max="1" step="0.05" value={musicVolume} onChange={(e) => setMusicVolume(parseFloat(e.target.value))} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400" />
             </div>
-            <button onClick={() => setIsSettingsOpen(false)} className="w-full py-3 game-button text-white font-bold rounded-md text-sm">确认并返回</button>
+            <div className="mb-8">
+              <label className="text-slate-300 text-sm font-bold mb-3 flex justify-between">
+                <span>{t('language_label')}</span>
+              </label>
+              <div className="relative w-full" ref={menuRef}>
+                <div className="lang-select-trigger" onClick={() => setIsOpen(!isOpen)}>
+                  <span>{currentLangLabel}</span>
+                  <span className={`lang-select-arrow ${isOpen ? 'open' : ''}`} />
+                </div>
+                {isOpen && (
+                  <ul className="lang-select-menu">
+                    {languages.map((lang) => {
+                      const isActive = i18n.language === lang.code;
+                      return (
+                        <li
+                          key={lang.code}
+                          className={`lang-select-item ${isActive ? 'active' : ''}`}
+                          onClick={() => handleSelect(lang.code)}
+                        >
+                          {t(lang.labelKey)}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            </div>
+
+
+
+            {/* <div className="mb-8">
+              <label className="text-slate-300 text-sm font-bold mb-3 flex justify-between">
+                <span>{t('custom_pedestrian_title')}</span>
+              </label>
+
+              <div className="flex items-center gap-3 mb-3">
+                <input
+                  type="file"
+                  accept="image/*"
+                  id="custom-pedestrian-img"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (customPedestrianImage && customPedestrianImage.startsWith('blob:')) {
+                      URL.revokeObjectURL(customPedestrianImage);
+                    }
+                    setCustomPedestrianImage(URL.createObjectURL(file));
+                  }}
+                />
+                <label
+                  htmlFor="custom-pedestrian-img"
+                  className="px-3 py-1 game-button-secondary rounded text-xs cursor-pointer"
+                >
+                  {customPedestrianImage ? t('custom_pedestrian_change_image') : t('custom_pedestrian_upload_image')}
+                </label>
+                {customPedestrianImage && (
+                  <img
+                    src={customPedestrianImage}
+                    alt="preview"
+                    className="h-12 w-12 object-cover rounded border border-cyan-400/30"
+                  />
+                )}
+              </div>
+
+              <textarea
+                className="game-input w-full px-2 py-1 rounded text-xs mb-2"
+                rows={3}
+                placeholder={t('custom_pedestrian_dialogs_placeholder')}
+                value={customPedestrianDialogs.join('\n')}
+                onChange={(e) =>
+                  setCustomPedestrianDialogs(
+                    e.target.value.split('\n').filter((line) => line.trim() !== '')
+                  )
+                }
+              />
+
+              {(customPedestrianImage || customPedestrianDialogs.length > 0) && (
+                <button
+                  onClick={() => {
+                    if (customPedestrianImage && customPedestrianImage.startsWith('blob:')) {
+                      URL.revokeObjectURL(customPedestrianImage);
+                    }
+                    setCustomPedestrianImage(null);
+                    setCustomPedestrianDialogs([]);
+                  }}
+                  className="w-full px-3 py-1 game-button-secondary rounded text-xs"
+                >
+                  {t('custom_pedestrian_clear')}
+                </button>
+              )}
+            </div> */}
+
+
+ 
+            <button onClick={() => setIsSettingsOpen(false)} className="w-full py-3 game-button text-white font-bold rounded-md text-sm">{t('confirm_return')}</button>
           </div>
         </div>
       )}
@@ -1833,7 +1841,7 @@ const App: React.FC = () => {
           gameState={gameState} setGameState={setGameState} 
           setDialogContent={setDialogLines} setDialogImage={setDialogImage}
           onGameOver={(summary) => { gameAudio.stopMusic(); setIsRunMusicReady(false); if (activeNpcChat) finalizeMikuChatMemory(activeNpcChat); setActiveNpcChat(null); recordRun(summary); setGameState('MENU'); setIsGameOver(true); setIntroComplete(true); }}
-          onWin={() => { setGameState('ENDING'); setDialogLines(LYRICS.ending); setDialogImage(IDLE_SPRITE_URLS[0]); }}
+          onWin={() => { setGameState('ENDING'); setDialogLines(LYRICS.ending.map(line => t(line))); setDialogImage(IDLE_SPRITE_URLS[0]); }}
           onRunIntroStart={() => {
             void gameAudio.unlock();
             setIsRunMusicReady(true);
@@ -1845,6 +1853,8 @@ const App: React.FC = () => {
           dismissedMikuIds={dismissedMikuIds}
           onNpcChatAnchorChange={updateNpcChatAnchor}
           masterVolume={masterVolume} sfxVolume={sfxVolume} touchInputRef={touchInputRef}
+          // customPedestrianImage={customPedestrianImage}
+          // customPedestrianDialogs={customPedestrianDialogs}
         />
       </div>
       )}
@@ -1853,47 +1863,47 @@ const App: React.FC = () => {
         <div className="absolute inset-0 main-menu-screen flex flex-col items-center justify-center text-center p-4 z-40">
           {isGameOver ? (
              <div className="animate-in fade-in zoom-in duration-500 flex flex-col items-center gap-6 w-full max-w-4xl">
-               <h1 className="text-5xl md:text-7xl text-cyan-100 font-bold pixel-font drop-shadow-[0_0_30px_rgba(34,211,238,0.42)]">调查结算</h1>
+               <h1 className="text-5xl md:text-7xl text-cyan-100 font-bold pixel-font drop-shadow-[0_0_30px_rgba(34,211,238,0.42)]">{t('game_over_title')}</h1>
                {lastRunSummary && (
                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full">
                    <div className="game-panel p-4 rounded-lg text-left">
-                     <div className="text-slate-400 text-xs">SCORE</div>
+                     <div className="text-slate-400 text-xs">{t('score_label')}</div>
                      <div className="text-3xl text-yellow-300 font-bold">{lastRunSummary.score.toLocaleString()}</div>
                    </div>
                    <div className="game-panel p-4 rounded-lg text-left">
-                     <div className="text-slate-400 text-xs">DIST</div>
+                     <div className="text-slate-400 text-xs">{t('distance_label')}</div>
                      <div className="text-3xl text-cyan-300 font-bold">{lastRunSummary.distance}m</div>
                    </div>
                    <div className="game-panel p-4 rounded-lg text-left">
-                     <div className="text-slate-400 text-xs">COMBO</div>
+                     <div className="text-slate-400 text-xs">{t('combo_label')}</div>
                      <div className="text-3xl text-pink-300 font-bold">x{lastRunSummary.bestCombo}</div>
                    </div>
                    <div className="game-panel p-4 rounded-lg text-left">
-                     <div className="text-slate-400 text-xs">TITLE</div>
+                     <div className="text-slate-400 text-xs">{t('title_label')}</div>
                      <div className="text-xl text-white font-bold">{lastRunSummary.title}</div>
                    </div>
                  </div>
                )}
                <div className="grid md:grid-cols-[0.85fr_1.15fr] gap-4 w-full">
                  <div className="game-panel rounded-lg p-4 text-left">
-                   <h2 className="text-cyan-300 font-bold mb-3">本局成绩</h2>
-                   <div className="text-sm text-slate-300">分数</div>
+                   <h2 className="text-cyan-300 font-bold mb-3">{t('local_score_title')}</h2>
+                   <div className="text-sm text-slate-300">{t('score')}</div>
                    <div className="text-4xl text-yellow-300 font-bold mb-3">{lastRunSummary?.score.toLocaleString() ?? '0'}</div>
                    {authUser ? (
                      <div className="space-y-3">
-                       <div className="text-sm text-slate-300">已登录为 <span className="text-cyan-200 font-bold">{authUser.username}</span></div>
+                       <div className="text-sm text-slate-300">{t('logged_in_as', { username: authUser.username })}</div>
                        <div className="text-sm text-yellow-200">
-                         {uploadedScoreId ? '本局成绩已上传到全球排行榜' : uploadBusy ? '正在上传本局成绩...' : '正在等待上传本局成绩'}
+                         {uploadedScoreId ? t('already_uploaded') : uploadBusy ? t('uploading') : t('waiting_upload')}
                        </div>
                        {!uploadedScoreId && !uploadBusy && (
-                         <button onClick={() => void submitGlobalScore()} className="px-4 py-2 bg-yellow-400 text-slate-950 font-bold rounded-md hover:bg-yellow-300 transition-colors">重新上传</button>
+                         <button onClick={() => void submitGlobalScore()} className="px-4 py-2 bg-yellow-400 text-slate-950 font-bold rounded-md hover:bg-yellow-300 transition-colors">{t('reupload')}</button>
                        )}
-                       <button onClick={logout} className="px-4 py-2 game-button-secondary rounded-md">退出登录</button>
+                       <button onClick={logout} className="px-4 py-2 game-button-secondary rounded-md">{t('logout')}</button>
                      </div>
                    ) : (
                      <div className="space-y-3">
-                       <p className="text-sm text-slate-300">登录后可上传成绩到全球排行榜。</p>
-                       <button onClick={() => { setAuthMode('register'); setIsAuthModalOpen(true); }} className="px-4 py-2 game-button text-white font-bold rounded-md">登录 / 注册</button>
+                       <p className="text-sm text-slate-300">{t('login_prompt')}</p>
+                       <button onClick={() => { setAuthMode('register'); setIsAuthModalOpen(true); }} className="px-4 py-2 game-button text-white font-bold rounded-md">{t('login_register_btn')}</button>
                      </div>
                    )}
                    {authMessage && <div className="mt-3 text-xs text-yellow-200">{authMessage}</div>}
@@ -1901,8 +1911,8 @@ const App: React.FC = () => {
 
                  <div className="game-panel rounded-lg p-4 w-full">
                    <div className="flex items-center justify-between gap-3 mb-3">
-                     <h2 className="text-yellow-300 font-bold text-left">全球 TOP 50</h2>
-                     <button onClick={() => void fetchGlobalLeaderboard()} className="text-xs game-button-secondary px-2 py-1 rounded-md">刷新</button>
+                     <h2 className="text-yellow-300 font-bold text-left">{t('global_top50')}</h2>
+                     <button onClick={() => void fetchGlobalLeaderboard()} className="text-xs game-button-secondary px-2 py-1 rounded-md">{t('refresh')}</button>
                    </div>
                    {authUser && viewerLeaderboardEntry && !viewerIsInTopList && (
                      <div className="mb-3 grid grid-cols-[72px_1fr_90px_80px] gap-2 text-sm px-2 py-2 border border-cyan-400/70 bg-cyan-500/15 text-cyan-50 rounded-md">
@@ -1913,10 +1923,10 @@ const App: React.FC = () => {
                      </div>
                    )}
                    <div className="grid grid-cols-[48px_1fr_90px_80px] gap-2 text-xs text-slate-400 px-2 pb-2 border-b border-slate-800">
-                     <span>#</span><span>玩家</span><span>分数</span><span>距离</span>
+                     <span>#</span><span>{t('player')}</span><span>{t('score')}</span><span>{t('distance')}</span>
                    </div>
                    {displayedGlobalLeaderboard.length === 0 ? (
-                     <div className="text-slate-500 py-6">暂无全球记录</div>
+                     <div className="text-slate-500 py-6">{t('no_global_records')}</div>
                    ) : displayedGlobalLeaderboard.map((entry) => {
                      const isViewerEntry = !!authUser && entry.userId === authUser.id;
                      return (
@@ -1930,28 +1940,28 @@ const App: React.FC = () => {
                    })}
                  </div>
                </div>
-               <button onClick={startRun} className="px-16 py-5 game-button font-bold pixel-font text-white text-xl rounded-md">再跑一局</button>
+               <button onClick={startRun} className="px-16 py-5 game-button font-bold pixel-font text-white text-xl rounded-md">{t('retry')}</button>
              </div>
           ) : (
-            !introComplete ? <TypewriterEffect text={[...LYRICS.intro]} onComplete={() => setIntroComplete(true)} /> : (
+            !introComplete ? <TypewriterEffect text={[...LYRICS.intro.map(line => t(line))]} onComplete={() => setIntroComplete(true)} /> : (
               <div className="animate-in fade-in zoom-in duration-500 main-menu-shell rounded-lg px-6 py-7 md:px-10 md:py-9 text-left">
                 <div className="flex items-center justify-between gap-4 border-b border-cyan-800/70 pb-4">
                   <div className="text-xs text-cyan-200 font-bold">CAT_NET / ENDLESS CASE</div>
                   <div className="text-xs text-yellow-300 font-bold">RUN_01</div>
                 </div>
                 <div className="py-8 md:py-10">
-                  <h1 className="main-menu-title text-6xl md:text-8xl font-bold pixel-font leading-none">猫化行动</h1>
+                  <h1 className="main-menu-title text-6xl md:text-8xl font-bold pixel-font leading-none">{t('main_title')}</h1>
                   <div className="mt-5 max-w-xl text-sm md:text-base leading-relaxed text-slate-300">
-                    城市异常扩散中。进入无尽调查，收集数据、躲避危险、把人类猫化真相带回来。
+                    {t('main_subtitle')}
                   </div>
                 </div>
                 <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 border-t border-cyan-800/70 pt-5">
                   <div className="grid grid-cols-3 gap-3 text-xs text-slate-400">
-                    <div><span className="block text-cyan-200 font-bold">移动</span>A / D</div>
-                    <div><span className="block text-cyan-200 font-bold">跳跃</span>空格</div>
-                    <div><span className="block text-cyan-200 font-bold">探测</span>F</div>
+                    <div><span className="block text-cyan-200 font-bold">{t('move')}</span>A / D</div>
+                    <div><span className="block text-cyan-200 font-bold">{t('jump')}</span>空格</div>
+                    <div><span className="block text-cyan-200 font-bold">{t('detect')}</span>F</div>
                   </div>
-                  <button onClick={startRun} className="main-menu-button px-12 py-4 font-bold pixel-font text-xl rounded-md">开始调查</button>
+                  <button onClick={startRun} className="main-menu-button px-12 py-4 font-bold pixel-font text-xl rounded-md">{t('start_investigation')}</button>
                 </div>
               </div>
             )
@@ -1963,26 +1973,26 @@ const App: React.FC = () => {
         <div className="absolute inset-0 z-50 bg-slate-950/90 flex items-center justify-center p-4">
           <div className="w-full max-w-sm game-panel-strong rounded-lg p-5 text-left">
             <div className="flex items-center justify-between gap-3 mb-4">
-              <h2 className="text-cyan-300 font-bold pixel-font text-xl">账号</h2>
-              <button onClick={() => setIsAuthModalOpen(false)} className="h-8 w-8 game-button-secondary text-white rounded-md">×</button>
+              <h2 className="text-cyan-300 font-bold pixel-font text-xl">{t('auth_modal_title')}</h2>
+              <button onClick={() => setIsAuthModalOpen(false)} className="h-8 w-8 game-button-secondary text-white rounded-md">{t('close')}</button>
             </div>
             <div className="flex gap-2 text-sm mb-4">
-              <button onClick={() => setAuthMode('register')} className={`px-3 py-1 rounded-md border ${authMode === 'register' ? 'bg-cyan-600 border-cyan-300 text-white' : 'border-slate-600 text-slate-300'}`}>注册</button>
-              <button onClick={() => setAuthMode('login')} className={`px-3 py-1 rounded-md border ${authMode === 'login' ? 'bg-cyan-600 border-cyan-300 text-white' : 'border-slate-600 text-slate-300'}`}>登录</button>
+              <button onClick={() => setAuthMode('register')} className={`px-3 py-1 rounded-md border ${authMode === 'register' ? 'bg-cyan-600 border-cyan-300 text-white' : 'border-slate-600 text-slate-300'}`}>{t('register_tab')}</button>
+              <button onClick={() => setAuthMode('login')} className={`px-3 py-1 rounded-md border ${authMode === 'login' ? 'bg-cyan-600 border-cyan-300 text-white' : 'border-slate-600 text-slate-300'}`}>{t('login_tab')}</button>
             </div>
             <form onSubmit={(event) => { event.preventDefault(); void submitAuth(); }} className="space-y-3">
-              <input value={authUsername} onChange={(e) => setAuthUsername(e.target.value)} placeholder="用户名" className="w-full game-input rounded-md px-3 py-2" />
-              <input value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} placeholder="密码" type="password" className="w-full game-input rounded-md px-3 py-2" />
+              <input value={authUsername} onChange={(e) => setAuthUsername(e.target.value)} placeholder={t('username_placeholder')} className="w-full game-input rounded-md px-3 py-2" />
+              <input value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} placeholder={t('password_placeholder')} type="password" className="w-full game-input rounded-md px-3 py-2" />
               <button disabled={authBusy} className="w-full px-4 py-2 game-button text-white font-bold rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
-                {authBusy ? '处理中' : authMode === 'register' ? '注册并登录' : '登录'}
+                {authBusy ? t('processing') : authMode === 'register' ? t('register_login_btn') : t('login_btn')}
               </button>
             </form>
             {lastRunSummary && !authUser && (
-              <div className="mt-3 text-xs text-yellow-200">登录成功后会自动上传刚才这局的成绩。</div>
+              <div className="mt-3 text-xs text-yellow-200">{t('login_upload_notice')}</div>
             )}
             {authMessage && <div className="mt-3 text-xs text-slate-300">{authMessage}</div>}
             <div className="mt-3 text-[11px] leading-relaxed text-slate-500">
-              注册有频率限制和计算校验，成绩上传需要登录态和本局服务端令牌。
+              {t('auth_note')}
             </div>
           </div>
         </div>
@@ -1999,18 +2009,18 @@ const App: React.FC = () => {
       {gameState === 'PLAYING' && isMobile && (
         <div className="absolute inset-0 pointer-events-none z-30 touch-none select-none [-webkit-tap-highlight-color:transparent]">
           <div className="absolute bottom-8 left-7 w-44 h-44 pointer-events-auto opacity-70 active:opacity-95 transition-opacity">
-              <button aria-label="跳跃" className="absolute top-0 left-1/3 w-1/3 h-1/3 rounded-t-2xl touch-control-button" onTouchStart={(e) => handleTouchStart('up', e)} onTouchEnd={(e) => handleTouchEnd('up', e)} onTouchCancel={(e) => handleTouchEnd('up', e)} onContextMenu={preventCtx}>▲</button>
-              <button aria-label="下蹲" className="absolute bottom-0 left-1/3 w-1/3 h-1/3 rounded-b-2xl touch-control-button" onTouchStart={(e) => handleTouchStart('down', e)} onTouchEnd={(e) => handleTouchEnd('down', e)} onTouchCancel={(e) => handleTouchEnd('down', e)} onContextMenu={preventCtx}>▼</button>
-              <button aria-label="左移" className="absolute top-1/3 left-0 w-1/3 h-1/3 rounded-l-2xl touch-control-button" onTouchStart={(e) => handleTouchStart('left', e)} onTouchEnd={(e) => handleTouchEnd('left', e)} onTouchCancel={(e) => handleTouchEnd('left', e)} onContextMenu={preventCtx}>◀</button>
-              <button aria-label="右移" className="absolute top-1/3 right-0 w-1/3 h-1/3 rounded-r-2xl touch-control-button" onTouchStart={(e) => handleTouchStart('right', e)} onTouchEnd={(e) => handleTouchEnd('right', e)} onTouchCancel={(e) => handleTouchEnd('right', e)} onContextMenu={preventCtx}>▶</button>
+              <button aria-label={t('jump')} className="absolute top-0 left-1/3 w-1/3 h-1/3 rounded-t-2xl touch-control-button" onTouchStart={(e) => handleTouchStart('up', e)} onTouchEnd={(e) => handleTouchEnd('up', e)} onTouchCancel={(e) => handleTouchEnd('up', e)} onContextMenu={preventCtx}>▲</button>
+              <button aria-label={t('crouch')} className="absolute bottom-0 left-1/3 w-1/3 h-1/3 rounded-b-2xl touch-control-button" onTouchStart={(e) => handleTouchStart('down', e)} onTouchEnd={(e) => handleTouchEnd('down', e)} onTouchCancel={(e) => handleTouchEnd('down', e)} onContextMenu={preventCtx}>▼</button>
+              <button aria-label={t('move_left')} className="absolute top-1/3 left-0 w-1/3 h-1/3 rounded-l-2xl touch-control-button" onTouchStart={(e) => handleTouchStart('left', e)} onTouchEnd={(e) => handleTouchEnd('left', e)} onTouchCancel={(e) => handleTouchEnd('left', e)} onContextMenu={preventCtx}>◀</button>
+              <button aria-label={t('move_right')} className="absolute top-1/3 right-0 w-1/3 h-1/3 rounded-r-2xl touch-control-button" onTouchStart={(e) => handleTouchStart('right', e)} onTouchEnd={(e) => handleTouchEnd('right', e)} onTouchCancel={(e) => handleTouchEnd('right', e)} onContextMenu={preventCtx}>▶</button>
           </div>
           <div className="absolute bottom-8 right-7 flex gap-4 pointer-events-auto opacity-75 active:opacity-100 transition-opacity items-end text-white">
-             <button aria-label="互动" className="w-16 h-16 rounded-full touch-control-button font-bold text-lg flex items-center justify-center mb-10 text-yellow-100" onTouchStart={(e) => handleTouchStart('interact', e)} onTouchEnd={(e) => handleTouchEnd('interact', e)} onTouchCancel={(e) => handleTouchEnd('interact', e)} onContextMenu={preventCtx}>E</button>
+             <button aria-label={t('interact')} className="w-16 h-16 rounded-full touch-control-button font-bold text-lg flex items-center justify-center mb-10 text-yellow-100" onTouchStart={(e) => handleTouchStart('interact', e)} onTouchEnd={(e) => handleTouchEnd('interact', e)} onTouchCancel={(e) => handleTouchEnd('interact', e)} onContextMenu={preventCtx}>E</button>
              <div className="flex flex-col gap-5">
-               <button aria-label="行动" className="w-24 h-24 rounded-full touch-control-button font-bold text-3xl flex items-center justify-center text-cyan-50" onTouchStart={(e) => handleTouchStart('action', e)} onTouchEnd={(e) => handleTouchEnd('action', e)} onTouchCancel={(e) => handleTouchEnd('action', e)} onContextMenu={preventCtx}>●</button>
+               <button aria-label={t('action')} className="w-24 h-24 rounded-full touch-control-button font-bold text-3xl flex items-center justify-center text-cyan-50" onTouchStart={(e) => handleTouchStart('action', e)} onTouchEnd={(e) => handleTouchEnd('action', e)} onTouchCancel={(e) => handleTouchEnd('action', e)} onContextMenu={preventCtx}>●</button>
                <div className="flex gap-4">
-                 <button aria-label="冲刺" className="w-20 h-20 rounded-full touch-control-button font-bold text-xl flex items-center justify-center text-blue-100" onTouchStart={(e) => handleTouchStart('dash', e)} onTouchEnd={(e) => handleTouchEnd('dash', e)} onTouchCancel={(e) => handleTouchEnd('dash', e)} onContextMenu={preventCtx}>D</button>
-                 <button aria-label="攻击" className="w-20 h-20 rounded-full touch-control-button font-bold text-xl flex items-center justify-center text-rose-100" onTouchStart={(e) => handleTouchStart('attack', e)} onTouchEnd={(e) => handleTouchEnd('attack', e)} onTouchCancel={(e) => handleTouchEnd('attack', e)} onContextMenu={preventCtx}>F</button>
+                 <button aria-label={t('dash')} className="w-20 h-20 rounded-full touch-control-button font-bold text-xl flex items-center justify-center text-blue-100" onTouchStart={(e) => handleTouchStart('dash', e)} onTouchEnd={(e) => handleTouchEnd('dash', e)} onTouchCancel={(e) => handleTouchEnd('dash', e)} onContextMenu={preventCtx}>D</button>
+                 <button aria-label={t('attack')} className="w-20 h-20 rounded-full touch-control-button font-bold text-xl flex items-center justify-center text-rose-100" onTouchStart={(e) => handleTouchStart('attack', e)} onTouchEnd={(e) => handleTouchEnd('attack', e)} onTouchCancel={(e) => handleTouchEnd('attack', e)} onContextMenu={preventCtx}>F</button>
                </div>
              </div>
           </div>
@@ -2019,5 +2029,11 @@ const App: React.FC = () => {
     </div>
   );
 };
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
 
 export default App;

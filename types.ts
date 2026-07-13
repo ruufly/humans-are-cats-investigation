@@ -45,7 +45,7 @@ export enum NpcType {
   LEADER = 'LEADER'
 }
 
-export type NpcChatKind = 'miku' | 'random';
+export type NpcChatKind = 'miku' | 'random' | 'custom';
 export type NpcChatTargetType = 'npc' | 'pedestrian';
 
 export interface NpcChatTarget {
@@ -67,6 +67,13 @@ export interface NpcChatSession {
   target?: NpcChatTarget;
 }
 
+export interface CustomNpc {
+  id: string;
+  name: string;
+  imageUrl: string;
+  dialogTexts: string[];
+}
+
 export interface NPC extends Entity {
   id: number;
   type: NpcType;
@@ -74,7 +81,7 @@ export interface NPC extends Entity {
   originalEmoji: string;
   scannedEmoji: string;
   dialogText: string[];
-  isTarget: boolean; 
+  isTarget: boolean;
   vx: number;
   vy: number;
   patrolStart: number;
@@ -85,9 +92,12 @@ export interface NPC extends Entity {
   damageCooldown: number;
   scanHits: number;
   maxScanHits: number;
-  label: string;
+  label?: string;
+  labelKey: string;
   chatKind?: NpcChatKind;
   spriteKey?: string;
+  customImage?: string;
+  customName?: string;
 }
 
 export interface Platform extends Position {
@@ -176,3 +186,4 @@ export interface Door extends Position {
   targetZone: ZoneType;
   label: string;
 }
+
