@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GameCanvas } from './components/GameCanvas';
 import { DialogBox } from './components/DialogBox';
@@ -5,6 +6,7 @@ import { GameState, LeaderboardEntry, NpcChatSession, RunSummary, TouchInput } f
 import { LYRICS, IDLE_SPRITE_URLS } from './constants';
 import { gameAudio } from './utils/audioSystem';
 import { useTranslation } from 'react-i18next';
+import './i18n';
 import {
   buildMikuMemoryBrief,
   commitMikuMemoryEndResult,
@@ -16,15 +18,14 @@ import {
   syncAccountMikuMemoryFromServer,
 } from './utils/mikuMemory';
 import type { MikuMemoryEndResult } from './utils/mikuMemory';
-import ReactDOM from 'react-dom/client';
-import './i18n';
-import { CustomNpc } from './types';
 
 const languages = [
   { code: 'zh', labelKey: 'lang_zh' },
   { code: 'en', labelKey: 'lang_en' },
   { code: 'ja', labelKey: 'lang_ja' },
-];
+] as const;
+
+type LanguageCode = typeof languages[number]['code'];
 
 const AUTH_TOKEN_KEY = 'cat_investigation_auth_token_v1';
 
@@ -222,7 +223,7 @@ const cleanText = (value: unknown, maxLength = 240) => String(value ?? '').repla
 const normalizeLookupText = (value: unknown) => cleanText(value, 200)
   .toLowerCase()
   .normalize('NFKC')
-  .replace(/[《》「」『』“”"'’‘`´·・\s_\-—–,.，。:：/／\\|｜()[\]（）【】!？!？♡☆★]/gu, '');
+  .replace(/[《》「」『』“”"'’‘`´·・\s_\-—–,.，。:：/／\\|｜()[\]（）【】!?！？♡☆★]/gu, '');
 const foldAmbiguousLookupText = (value: string) => value
   .replace(/[0０]/g, 'o')
   .replace(/[1１]/g, 'l')
@@ -240,17 +241,127 @@ const HOT_SONG_QUERY_ALIASES: Record<string, string[]> = {
 };
 
 const CURATED_VOCALOID_CLASSICS: BiliboardHotSong[] = [
-  { title: 'メルト', aliases: ['メルト', 'Melt'], producers: ['ryo'], vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: 'メルト melt ryo supercell 初音ミク 初音未来 miku hatsune miku' },
-  { title: 'ワールドイズマイン', aliases: ['ワールドイズマイン', 'World is Mine', '世界第一公主殿下', '世界で一番おひめさま'], producers: ['ryo'], vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: 'ワールドイズマイン world is mine 世界第一公主殿下 世界で一番おひめさま ryo supercell 初音ミク 初音未来 miku hatsune miku' },
-  { title: '初音ミクの消失', aliases: ['初音ミクの消失', '初音未来的消失', 'The Disappearance of Hatsune Miku', '消失'], producers: ['cosMo@暴走P'], vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: '初音ミクの消失 初音未来的消失 the disappearance of hatsune miku 消失 cosmo@暴走p 初音ミク 初音未来 miku hatsune miku' },
-  { title: 'Ievan Polkka', aliases: ['Ievan Polkka', 'Levan Polkka', '甩葱歌', 'イエヴァン・ポルッカ'], producers: ['Otomania'], vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: 'ievan polkka levan polkka 甩葱歌 イエヴァンポルッカ otomania 初音ミク 初音未来 miku hatsune miku' },
-  { title: 'Tell Your World', aliases: ['Tell Your World'], producers: ['kz'], vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: 'tell your world kz livetune 初音ミク 初音未来 miku hatsune miku' },
-  { title: '炉心融解', aliases: ['炉心融解', 'Roshin Yuukai', 'Meltdown'], producers: ['iroha(sasaki)'], vocalists: ['鏡音リン', '镜音铃', 'Kagamine Rin'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: '炉心融解 roshin yuukai meltdown iroha sasaki kuma 鏡音リン 镜音铃 kagamine rin' },
-  { title: 'ローリンガール', aliases: ['ローリンガール', 'Rolling Girl', 'Rolling Girl／ローリンガール'], producers: ['wowaka'], vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: 'ローリンガール rolling girl wowaka 初音ミク 初音未来 miku hatsune miku' },
-  { title: 'マトリョシカ', aliases: ['マトリョシカ', 'Matryoshka', '俄罗斯套娃'], producers: ['ハチ'], vocalists: ['初音ミク', 'GUMI', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: 'マトリョシカ matryoshka 俄罗斯套娃 ハチ hachi 米津玄師 初音ミク gumi 初音未来 miku hatsune miku' },
-  { title: '砂の惑星', aliases: ['砂の惑星', 'Sand Planet', '沙之惑星'], producers: ['ハチ'], vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: '砂の惑星 sand planet 沙之惑星 ハチ hachi 米津玄師 初音ミク 初音未来 miku hatsune miku' },
-  { title: 'ゴーストルール', aliases: ['ゴーストルール', 'Ghost Rule', '幽灵法则'], producers: ['DECO*27'], vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: 'ゴーストルール ghost rule 幽灵法则 deco*27 初音ミク 初音未来 miku hatsune miku' },
-  { title: 'ヒビカセ', aliases: ['ヒビカセ', 'Hibikase'], producers: ['ギガ', 'Reol'], vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'], bvids: [], bilibiliUrls: [], bestRank: 1, appearances: 40, searchText: 'ヒビカセ hibikase ギガ giga reol 初音ミク 初音未来 miku hatsune miku' },
+  {
+    title: 'メルト',
+    aliases: ['メルト', 'Melt'],
+    producers: ['ryo'],
+    vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
+    bvids: [],
+    bilibiliUrls: [],
+    bestRank: 1,
+    appearances: 40,
+    searchText: 'メルト melt ryo supercell 初音ミク 初音未来 miku hatsune miku',
+  },
+  {
+    title: 'ワールドイズマイン',
+    aliases: ['ワールドイズマイン', 'World is Mine', '世界第一公主殿下', '世界で一番おひめさま'],
+    producers: ['ryo'],
+    vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
+    bvids: [],
+    bilibiliUrls: [],
+    bestRank: 1,
+    appearances: 40,
+    searchText: 'ワールドイズマイン world is mine 世界第一公主殿下 世界で一番おひめさま ryo supercell 初音ミク 初音未来 miku hatsune miku',
+  },
+  {
+    title: '初音ミクの消失',
+    aliases: ['初音ミクの消失', '初音未来的消失', 'The Disappearance of Hatsune Miku', '消失'],
+    producers: ['cosMo@暴走P'],
+    vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
+    bvids: [],
+    bilibiliUrls: [],
+    bestRank: 1,
+    appearances: 40,
+    searchText: '初音ミクの消失 初音未来的消失 the disappearance of hatsune miku 消失 cosmo@暴走p 初音ミク 初音未来 miku hatsune miku',
+  },
+  {
+    title: 'Ievan Polkka',
+    aliases: ['Ievan Polkka', 'Levan Polkka', '甩葱歌', 'イエヴァン・ポルッカ'],
+    producers: ['Otomania'],
+    vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
+    bvids: [],
+    bilibiliUrls: [],
+    bestRank: 1,
+    appearances: 40,
+    searchText: 'ievan polkka levan polkka 甩葱歌 イエヴァンポルッカ otomania 初音ミク 初音未来 miku hatsune miku',
+  },
+  {
+    title: 'Tell Your World',
+    aliases: ['Tell Your World'],
+    producers: ['kz'],
+    vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
+    bvids: [],
+    bilibiliUrls: [],
+    bestRank: 1,
+    appearances: 40,
+    searchText: 'tell your world kz livetune 初音ミク 初音未来 miku hatsune miku',
+  },
+  {
+    title: '炉心融解',
+    aliases: ['炉心融解', 'Roshin Yuukai', 'Meltdown'],
+    producers: ['iroha(sasaki)'],
+    vocalists: ['鏡音リン', '镜音铃', 'Kagamine Rin'],
+    bvids: [],
+    bilibiliUrls: [],
+    bestRank: 1,
+    appearances: 40,
+    searchText: '炉心融解 roshin yuukai meltdown iroha sasaki kuma 鏡音リン 镜音铃 kagamine rin',
+  },
+  {
+    title: 'ローリンガール',
+    aliases: ['ローリンガール', 'Rolling Girl', 'Rolling Girl／ローリンガール'],
+    producers: ['wowaka'],
+    vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
+    bvids: [],
+    bilibiliUrls: [],
+    bestRank: 1,
+    appearances: 40,
+    searchText: 'ローリンガール rolling girl wowaka 初音ミク 初音未来 miku hatsune miku',
+  },
+  {
+    title: 'マトリョシカ',
+    aliases: ['マトリョシカ', 'Matryoshka', '俄罗斯套娃'],
+    producers: ['ハチ'],
+    vocalists: ['初音ミク', 'GUMI', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
+    bvids: [],
+    bilibiliUrls: [],
+    bestRank: 1,
+    appearances: 40,
+    searchText: 'マトリョシカ matryoshka 俄罗斯套娃 ハチ hachi 米津玄師 初音ミク gumi 初音未来 miku hatsune miku',
+  },
+  {
+    title: '砂の惑星',
+    aliases: ['砂の惑星', 'Sand Planet', '沙之惑星'],
+    producers: ['ハチ'],
+    vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
+    bvids: [],
+    bilibiliUrls: [],
+    bestRank: 1,
+    appearances: 40,
+    searchText: '砂の惑星 sand planet 沙之惑星 ハチ hachi 米津玄師 初音ミク 初音未来 miku hatsune miku',
+  },
+  {
+    title: 'ゴーストルール',
+    aliases: ['ゴーストルール', 'Ghost Rule', '幽灵法则'],
+    producers: ['DECO*27'],
+    vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
+    bvids: [],
+    bilibiliUrls: [],
+    bestRank: 1,
+    appearances: 40,
+    searchText: 'ゴーストルール ghost rule 幽灵法则 deco*27 初音ミク 初音未来 miku hatsune miku',
+  },
+  {
+    title: 'ヒビカセ',
+    aliases: ['ヒビカセ', 'Hibikase'],
+    producers: ['ギガ', 'Reol'],
+    vocalists: ['初音ミク', '初音未来', 'miku', 'Hatsune Miku', 'Miku'],
+    bvids: [],
+    bilibiliUrls: [],
+    bestRank: 1,
+    appearances: 40,
+    searchText: 'ヒビカセ hibikase ギガ giga reol 初音ミク 初音未来 miku hatsune miku',
+  },
 ];
 
 const expandHotSongQueries = (queries: string[]) => {
@@ -271,7 +382,6 @@ const expandHotSongQueries = (queries: string[]) => {
   });
   return [...new Set(expanded)].slice(0, 8);
 };
-
 
 const stripSongQueryNoise = (value: string) => cleanText(value, 160)
   .replace(/这首歌|這首歌|这歌|這歌|这曲|這曲|歌曲|曲子|歌名|歌词|歌詞|lyrics?/giu, ' ')
@@ -914,7 +1024,7 @@ const NpcChatBox: React.FC<{
             {chat.messages.map((message, idx) => (
               <p key={idx} className={`text-xs md:text-sm leading-snug ${message.role === 'user' ? 'text-sky-200' : 'text-slate-100'}`}>
                 <span className={message.role === 'user' ? 'text-sky-300 mr-1' : 'text-cyan-300 mr-1'}>{message.role === 'user' ? t('npc_user_prefix') : t('npc_assistant_prefix')}</span>
-                {t(message.content)}
+                {message.content}
               </p>
             ))}
             {chat.isLoading && <p className="text-cyan-300 text-xs animate-pulse">{t('npc_miku_thinking')}</p>}
@@ -1064,22 +1174,25 @@ const App: React.FC = () => {
   const lastChatAnchorUpdateRef = useRef(0);
   const lastChatAnchorRef = useRef<{ x: number; y: number } | null>(null);
   const safariCompatMode = isSafariBrowser();
-  const [customNpcs, setCustomNpcs] = useState<CustomNpc[]>([]);
-  const [customPedestrianImage, setCustomPedestrianImage] = useState<string | null>(null);
-  const [customPedestrianDialogs, setCustomPedestrianDialogs] = useState<string[]>([]);
 
   const touchInputRef = useRef<TouchInput>({ left: false, right: false, up: false, down: false, action: false, attack: false, interact: false, dash: false });
 
   const [isOpen, setIsOpen] = useState(false);
-  const currentLang = i18n.language;
-
   const menuRef = useRef<HTMLDivElement>(null);
-  const currentLangLabel = t(languages.find(lang => lang.code === i18n.language)?.labelKey || 'lang_zh');
+  const detectedLanguage = (i18n.resolvedLanguage || i18n.language || 'zh').split('-')[0];
+  const currentLang: LanguageCode = languages.some((lang) => lang.code === detectedLanguage)
+    ? detectedLanguage as LanguageCode
+    : 'zh';
+  const currentLangLabel = t(languages.find((lang) => lang.code === currentLang)?.labelKey || 'lang_zh');
 
-  const handleSelect = (code: string) => {
-    i18n.changeLanguage(code);
+  const handleSelect = (code: LanguageCode) => {
+    void i18n.changeLanguage(code);
     setIsOpen(false);
   };
+
+  useEffect(() => {
+    document.documentElement.lang = currentLang;
+  }, [currentLang]);
 
   const authHeaders = (extra: Record<string, string> = {}) => ({
     ...extra,
@@ -1182,7 +1295,7 @@ const App: React.FC = () => {
     try {
       localStorage.setItem(AUTH_TOKEN_KEY, token);
     } catch {
-      // ignore
+      // Auth still works in memory when local storage is unavailable.
     }
   };
 
@@ -1210,13 +1323,17 @@ const App: React.FC = () => {
       saveAuth(data.token, data.user, authMode === 'register');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'AUTH_FAILED';
-      const friendly = 
-        message === 'USERNAME_TAKEN' ? t('auth_username_taken') :
-        message === 'BAD_PASSWORD' ? t('auth_bad_password') :
-        message === 'BAD_USERNAME' ? t('auth_bad_username') :
-        message === 'REGISTER_RATE_LIMITED' ? t('auth_rate_limited') :
-        message === 'BAD_CREDENTIALS' ? t('auth_bad_credentials') :
-        t('auth_generic_fail');
+      const friendly = message === 'USERNAME_TAKEN'
+        ? t('auth_username_taken')
+        : message === 'BAD_PASSWORD'
+          ? t('auth_bad_password')
+          : message === 'BAD_USERNAME'
+            ? t('auth_bad_username')
+            : message === 'REGISTER_RATE_LIMITED'
+              ? t('auth_rate_limited')
+              : message === 'BAD_CREDENTIALS'
+                ? t('auth_bad_credentials')
+                : t('auth_generic_fail');
       setAuthMessage(friendly);
     } finally {
       setAuthBusy(false);
@@ -1232,7 +1349,7 @@ const App: React.FC = () => {
     try {
       localStorage.removeItem(AUTH_TOKEN_KEY);
     } catch {
-      // ignore
+      // Nothing to clear.
     }
   };
 
@@ -1268,10 +1385,13 @@ const App: React.FC = () => {
       setAuthMessage(t('upload_success'));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'UPLOAD_FAILED';
-      const friendly = message === 'RUN_ALREADY_SUBMITTED' ? t('upload_already_submitted') :
-        message === 'LOGIN_REQUIRED' ? t('upload_login_required') :
-        message === 'SCORE_TOO_HIGH' || message === 'DISTANCE_TOO_HIGH' || message === 'TIME_TRAVEL' ? t('upload_score_rejected') :
-        t('upload_fail_generic');
+      const friendly = message === 'RUN_ALREADY_SUBMITTED'
+        ? t('upload_already_submitted')
+        : message === 'LOGIN_REQUIRED'
+          ? t('upload_login_required')
+          : message === 'SCORE_TOO_HIGH' || message === 'DISTANCE_TOO_HIGH' || message === 'TIME_TRAVEL'
+            ? t('upload_score_rejected')
+            : t('upload_fail_generic');
       setAuthMessage(friendly);
     } finally {
       setUploadBusy(false);
@@ -1392,6 +1512,8 @@ const App: React.FC = () => {
   };
 
   const declineNpcChatInvite = () => {
+    // Read from the render-scope closure. Never call setState inside another
+    // setter's updater because StrictMode can invoke updaters more than once.
     if (activeNpcChat?.isInvite && activeNpcChat.target?.type === 'npc' && activeNpcChat.target.kind === 'miku') {
       const dismissedId = activeNpcChat.target.id;
       setDismissedMikuIds((prev) => {
@@ -1452,10 +1574,20 @@ const App: React.FC = () => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const lyrics = await res.json() as LyricLookupResult;
       rememberLyricsForSong(song, lyrics);
-      logMikuLookup('lyrics-prefetch', { song: song.name, found: lyrics.found, title: lyrics.title, lyricLineCount: lyrics.lyricLineCount, error: lyrics.error });
+      logMikuLookup('lyrics-prefetch', {
+        song: song.name,
+        found: lyrics.found,
+        title: lyrics.title,
+        lyricLineCount: lyrics.lyricLineCount,
+        error: lyrics.error,
+      });
       return lyrics;
     } catch (error) {
-      const lyrics: LyricLookupResult = { query: song.name, found: false, error: error instanceof Error ? error.message : 'LYRICS_LOOKUP_FAILED' };
+      const lyrics: LyricLookupResult = {
+        query: song.name,
+        found: false,
+        error: error instanceof Error ? error.message : 'LYRICS_LOOKUP_FAILED',
+      };
       rememberLyricsForSong(song, lyrics);
       return lyrics;
     }
@@ -1479,7 +1611,11 @@ const App: React.FC = () => {
       if (!lookup.results.length) return;
       const key = getLookupMemoryKey(lookup);
       if (!key) return;
-      entries.set(key, { key, lookup, expiresAtTurn: turn + 3 });
+      entries.set(key, {
+        key,
+        lookup,
+        expiresAtTurn: turn + 3,
+      });
     });
     recentSongLookupRef.current = [...entries.values()].filter((entry) => entry.expiresAtTurn >= turn).slice(-8);
   };
@@ -1522,7 +1658,11 @@ const App: React.FC = () => {
         if (lyrics.title) lyricCacheRef.current.set(normalizeLookupText(lyrics.title), lyrics);
         contexts.push(lyrics);
       } catch (error) {
-        contexts.push({ query, found: false, error: error instanceof Error ? error.message : 'LYRICS_LOOKUP_FAILED' });
+        contexts.push({
+          query,
+          found: false,
+          error: error instanceof Error ? error.message : 'LYRICS_LOOKUP_FAILED',
+        });
       }
     }
     return contexts;
@@ -1554,7 +1694,6 @@ const App: React.FC = () => {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as MikuChatApiResponse;
-      // ... rest of the logic remains the same
       if (data.action === 'memory_search' && Array.isArray(data.queries) && data.queries.length > 0) {
         const memorySearchResults = data.queries.flatMap((query) => searchMikuTopicMemory(query, memoryScope));
         const uniqueMemorySearchResults = [...new Map(memorySearchResults.map((result) => [`${result.sessionId}:${result.topicId}`, result])).values()].slice(0, 3);
@@ -1601,6 +1740,8 @@ const App: React.FC = () => {
       error = t('miku_connection_unavailable', { message: sendError instanceof Error ? sendError.message : '' });
     }
 
+    // Only apply the reply if this is still the exact chat session that sent it.
+    // Closing and reopening creates a new messages array, so stale replies bail.
     setActiveNpcChat((current) => {
       if (!current || current.kind !== 'miku') return current;
       if (current.messages !== nextMessages) return current;
@@ -1679,27 +1820,16 @@ const App: React.FC = () => {
         setIsOpen(false);
       }
     };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
   }, []);
-
-  useEffect(() => {
-  return () => {
-    customNpcs.forEach((npc) => {
-      if (npc.imageUrl && npc.imageUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(npc.imageUrl);
-      }
-    });
-  };
-}, [customNpcs]);
-
-useEffect(() => {
-  return () => {
-    if (customPedestrianImage && customPedestrianImage.startsWith('blob:')) {
-      URL.revokeObjectURL(customPedestrianImage);
-    }
-  };
-}, [customPedestrianImage]);
 
   const displayedGlobalLeaderboard = globalLeaderboard.slice(0, 50);
   const viewerIsInTopList = !!viewerLeaderboardEntry && displayedGlobalLeaderboard.some((entry) => entry.id === viewerLeaderboardEntry.id);
@@ -1740,21 +1870,31 @@ useEffect(() => {
                 <span>{t('language_label')}</span>
               </label>
               <div className="relative w-full" ref={menuRef}>
-                <div className="lang-select-trigger" onClick={() => setIsOpen(!isOpen)}>
+                <button
+                  type="button"
+                  className="lang-select-trigger"
+                  aria-haspopup="listbox"
+                  aria-expanded={isOpen}
+                  onClick={() => setIsOpen((open) => !open)}
+                >
                   <span>{currentLangLabel}</span>
-                  <span className={`lang-select-arrow ${isOpen ? 'open' : ''}`} />
-                </div>
+                  <span aria-hidden="true" className={`lang-select-arrow ${isOpen ? 'open' : ''}`} />
+                </button>
                 {isOpen && (
-                  <ul className="lang-select-menu">
+                  <ul className="lang-select-menu" role="listbox" aria-label={t('language_label')}>
                     {languages.map((lang) => {
-                      const isActive = i18n.language === lang.code;
+                      const isActive = currentLang === lang.code;
                       return (
-                        <li
-                          key={lang.code}
-                          className={`lang-select-item ${isActive ? 'active' : ''}`}
-                          onClick={() => handleSelect(lang.code)}
-                        >
-                          {t(lang.labelKey)}
+                        <li key={lang.code} role="none">
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={isActive}
+                            className={`lang-select-item ${isActive ? 'active' : ''}`}
+                            onClick={() => handleSelect(lang.code)}
+                          >
+                            {t(lang.labelKey)}
+                          </button>
                         </li>
                       );
                     })}
@@ -1762,74 +1902,6 @@ useEffect(() => {
                 )}
               </div>
             </div>
-
-
-
-            {/* <div className="mb-8">
-              <label className="text-slate-300 text-sm font-bold mb-3 flex justify-between">
-                <span>{t('custom_pedestrian_title')}</span>
-              </label>
-
-              <div className="flex items-center gap-3 mb-3">
-                <input
-                  type="file"
-                  accept="image/*"
-                  id="custom-pedestrian-img"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    if (customPedestrianImage && customPedestrianImage.startsWith('blob:')) {
-                      URL.revokeObjectURL(customPedestrianImage);
-                    }
-                    setCustomPedestrianImage(URL.createObjectURL(file));
-                  }}
-                />
-                <label
-                  htmlFor="custom-pedestrian-img"
-                  className="px-3 py-1 game-button-secondary rounded text-xs cursor-pointer"
-                >
-                  {customPedestrianImage ? t('custom_pedestrian_change_image') : t('custom_pedestrian_upload_image')}
-                </label>
-                {customPedestrianImage && (
-                  <img
-                    src={customPedestrianImage}
-                    alt="preview"
-                    className="h-12 w-12 object-cover rounded border border-cyan-400/30"
-                  />
-                )}
-              </div>
-
-              <textarea
-                className="game-input w-full px-2 py-1 rounded text-xs mb-2"
-                rows={3}
-                placeholder={t('custom_pedestrian_dialogs_placeholder')}
-                value={customPedestrianDialogs.join('\n')}
-                onChange={(e) =>
-                  setCustomPedestrianDialogs(
-                    e.target.value.split('\n').filter((line) => line.trim() !== '')
-                  )
-                }
-              />
-
-              {(customPedestrianImage || customPedestrianDialogs.length > 0) && (
-                <button
-                  onClick={() => {
-                    if (customPedestrianImage && customPedestrianImage.startsWith('blob:')) {
-                      URL.revokeObjectURL(customPedestrianImage);
-                    }
-                    setCustomPedestrianImage(null);
-                    setCustomPedestrianDialogs([]);
-                  }}
-                  className="w-full px-3 py-1 game-button-secondary rounded text-xs"
-                >
-                  {t('custom_pedestrian_clear')}
-                </button>
-              )}
-            </div> */}
-
-
- 
             <button onClick={() => setIsSettingsOpen(false)} className="w-full py-3 game-button text-white font-bold rounded-md text-sm">{t('confirm_return')}</button>
           </div>
         </div>
@@ -1853,8 +1925,6 @@ useEffect(() => {
           dismissedMikuIds={dismissedMikuIds}
           onNpcChatAnchorChange={updateNpcChatAnchor}
           masterVolume={masterVolume} sfxVolume={sfxVolume} touchInputRef={touchInputRef}
-          // customPedestrianImage={customPedestrianImage}
-          // customPedestrianDialogs={customPedestrianDialogs}
         />
       </div>
       )}
@@ -1943,7 +2013,7 @@ useEffect(() => {
                <button onClick={startRun} className="px-16 py-5 game-button font-bold pixel-font text-white text-xl rounded-md">{t('retry')}</button>
              </div>
           ) : (
-            !introComplete ? <TypewriterEffect text={[...LYRICS.intro.map(line => t(line))]} onComplete={() => setIntroComplete(true)} /> : (
+            !introComplete ? <TypewriterEffect key={currentLang} text={LYRICS.intro.map((line) => t(line))} onComplete={() => setIntroComplete(true)} /> : (
               <div className="animate-in fade-in zoom-in duration-500 main-menu-shell rounded-lg px-6 py-7 md:px-10 md:py-9 text-left">
                 <div className="flex items-center justify-between gap-4 border-b border-cyan-800/70 pb-4">
                   <div className="text-xs text-cyan-200 font-bold">CAT_NET / ENDLESS CASE</div>
@@ -1958,7 +2028,7 @@ useEffect(() => {
                 <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 border-t border-cyan-800/70 pt-5">
                   <div className="grid grid-cols-3 gap-3 text-xs text-slate-400">
                     <div><span className="block text-cyan-200 font-bold">{t('move')}</span>A / D</div>
-                    <div><span className="block text-cyan-200 font-bold">{t('jump')}</span>空格</div>
+                    <div><span className="block text-cyan-200 font-bold">{t('jump')}</span>{t('key_space')}</div>
                     <div><span className="block text-cyan-200 font-bold">{t('detect')}</span>F</div>
                   </div>
                   <button onClick={startRun} className="main-menu-button px-12 py-4 font-bold pixel-font text-xl rounded-md">{t('start_investigation')}</button>
@@ -2029,11 +2099,5 @@ useEffect(() => {
     </div>
   );
 };
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
 
 export default App;

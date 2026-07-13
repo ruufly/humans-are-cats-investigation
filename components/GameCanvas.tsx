@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   COLORS,
@@ -335,7 +335,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   sfxVolume,
   touchInputRef,
 }) => {
-  const { t } = useTranslation();
+  const { t: activeTranslation } = useTranslation();
+  const translationRef = useRef(activeTranslation);
+  translationRef.current = activeTranslation;
+  const t = useCallback((key: string, options?: Record<string, unknown>) => (
+    translationRef.current(key, options)
+  ), []);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [dims, setDims] = useState(getViewportDims);
@@ -692,7 +697,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     height: npc.height + 34,
   });
 
-  const getNpcChatAnchor = (npc: { x: number; y: number; width: number }, kind: 'miku' | 'random') => {
+  const getNpcChatAnchor = (npc: { x: number; y: number; width: number }) => {
     const scale = Math.max(MIN_VIEWPORT_HEIGHT, dims.height) / BASE_HEIGHT;
     const screenX = (npc.x + npc.width / 2 - cameraRef.current.x) * scale;
     const screenY = (npc.y - 18) * scale;
@@ -714,7 +719,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       lines: [t(lineKey)],
       isInvite: isMiku,
       image: isMiku ? MIKU_NPC_IMAGE : undefined,
-      anchor: getNpcChatAnchor(npc, kind),
+      anchor: getNpcChatAnchor(npc),
       target: { type: 'npc', id: npc.id, kind },
     });
   };
@@ -725,7 +730,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       kind: 'random',
       speaker: t('npc_pedestrian'),
       lines: [t(lineKey)],
-      anchor: getNpcChatAnchor(pedestrian, 'random'),
+      anchor: getNpcChatAnchor(pedestrian),
       target: { type: 'pedestrian', id: pedestrian.id, kind: 'random' },
     });
   };
@@ -739,7 +744,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       onNpcChatAnchorChange({ x: -10000, y: -10000 });
       return;
     }
-    onNpcChatAnchorChange(getNpcChatAnchor(target, activeNpcChatTarget.kind));
+    onNpcChatAnchorChange(getNpcChatAnchor(target));
   };
 
   const awardScore = (base: number, label: string, x: number, y: number, combo = true) => {
@@ -1472,6 +1477,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         scheduleLoop();
         return;
       }
+      // Cap delta so a single physics step cannot tunnel through thin obstacles.
+      // 33ms is roughly dtScale 2; full sub-stepping can remain a follow-up.
       const clampedDelta = Math.min(deltaMs, 33);
       const dtScale = clampedDelta / BASE_FRAME_MS;
       lastFrameTime = now;
@@ -1725,6 +1732,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           .filter((npc) => !npc.scanned && npc.chatKind === 'miku' && rectsOverlap(playerHitbox, getNpcTalkZone(npc)))
           .map((npc) => npc.id)
       );
+      // Deleting the current element during Set.forEach is defined by the spec.
       mikuProximityRef.current.forEach((id) => {
         if (!nearbyMikuIds.has(id)) mikuProximityRef.current.delete(id);
       });
@@ -1867,7 +1875,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       });
 
       projectilesRef.current.forEach((pr) => {
-        if (pr.life <= 0) return;
+        if (pr.life <= 0) return; // Do not move or re-check an already-dead projectile.
         pr.x += pr.vx * dtScale;
         pr.life -= dtScale;
         if (pr.life <= 0) return;
