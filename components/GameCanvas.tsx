@@ -1926,21 +1926,26 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       floatingTextsRef.current = floatingTextsRef.current.filter((ft) => ft.life > 0);
       if (screenShakeRef.current > 0) screenShakeRef.current = Math.max(0, screenShakeRef.current - 1.2 * dtScale);
 
-      const cleanupLeft = Math.max(RUN_START_X - 120, cameraRef.current.x - CLEAN_FAR_BEHIND);
-      const viewRight = cameraRef.current.x + virtualWidth + CLEAN_BEHIND;
-      if (cleanupLeft > RUN_START_X - 120) {
-        leftAirWallXRef.current = Math.max(
-          leftAirWallXRef.current,
-          cleanupLeft + virtualWidth * AIR_WALL_CAMERA_SAFE_RATIO,
-        );
-      }
-      platformsRef.current = platformsRef.current.filter((o) => o.x + o.width > cleanupLeft);
-      hazardsRef.current = hazardsRef.current.filter((o) => o.x + o.width > cleanupLeft);
-      obstaclesRef.current = obstaclesRef.current.filter((o) => o.x + o.width > cleanupLeft);
-      pedestriansRef.current = pedestriansRef.current.filter((o) => o.x + o.width > cleanupLeft);
-      carsRef.current = carsRef.current.filter((o) => o.occupied || (o.x + o.width > cleanupLeft && o.x < viewRight));
-      npcsRef.current = npcsRef.current.filter((o) => o.x + o.width > cleanupLeft);
-      itemsRef.current = itemsRef.current.filter((o) => o.x + o.width > cleanupLeft);
+      const CLEANUP_BUFFER_LEFT = virtualWidth * 1.5;
+      const CLEANUP_BUFFER_RIGHT = virtualWidth + GENERATE_AHEAD + CHUNK_LENGTH * 2;
+
+      const cleanupLeft = cameraRef.current.x - CLEANUP_BUFFER_LEFT;
+      const cleanupRight = cameraRef.current.x + CLEANUP_BUFFER_RIGHT;
+
+      leftAirWallXRef.current = Math.max(
+        leftAirWallXRef.current,
+        cleanupLeft + virtualWidth * 0.4,
+      );
+
+      platformsRef.current = platformsRef.current.filter(o => o.x + o.width > cleanupLeft && o.x < cleanupRight);
+      hazardsRef.current = hazardsRef.current.filter(o => o.x + o.width > cleanupLeft && o.x < cleanupRight);
+      obstaclesRef.current = obstaclesRef.current.filter(o => o.x + o.width > cleanupLeft && o.x < cleanupRight);
+      pedestriansRef.current = pedestriansRef.current.filter(o => o.x + o.width > cleanupLeft && o.x < cleanupRight);
+      npcsRef.current = npcsRef.current.filter(o => o.x + o.width > cleanupLeft && o.x < cleanupRight);
+      itemsRef.current = itemsRef.current.filter(o => o.x + o.width > cleanupLeft && o.x < cleanupRight);
+
+      const CAR_CLEANUP_LEFT = cameraRef.current.x - 3000;
+      carsRef.current = carsRef.current.filter(o => o.occupied || (o.x + o.width > CAR_CLEANUP_LEFT && o.x < cleanupRight));
 
       const minCameraX = Math.max(0, leftAirWallXRef.current - virtualWidth * AIR_WALL_CAMERA_SAFE_RATIO);
       const targetCamX = Math.max(minCameraX, getRunCameraX(p.x, virtualWidth));
