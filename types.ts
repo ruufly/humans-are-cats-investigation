@@ -74,7 +74,7 @@ export interface NPC extends Entity {
   originalEmoji: string;
   scannedEmoji: string;
   dialogText: string[];
-  isTarget: boolean; 
+  isTarget: boolean;
   vx: number;
   vy: number;
   patrolStart: number;
@@ -85,7 +85,8 @@ export interface NPC extends Entity {
   damageCooldown: number;
   scanHits: number;
   maxScanHits: number;
-  label: string;
+  label?: string;
+  labelKey: string;
   chatKind?: NpcChatKind;
   spriteKey?: string;
 }
