@@ -1926,21 +1926,26 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       floatingTextsRef.current = floatingTextsRef.current.filter((ft) => ft.life > 0);
       if (screenShakeRef.current > 0) screenShakeRef.current = Math.max(0, screenShakeRef.current - 1.2 * dtScale);
 
-      const cleanupLeft = Math.max(RUN_START_X - 120, cameraRef.current.x - CLEAN_FAR_BEHIND);
-      const viewRight = cameraRef.current.x + virtualWidth + CLEAN_BEHIND;
-      if (cleanupLeft > RUN_START_X - 120) {
-        leftAirWallXRef.current = Math.max(
-          leftAirWallXRef.current,
-          cleanupLeft + virtualWidth * AIR_WALL_CAMERA_SAFE_RATIO,
-        );
-      }
-      platformsRef.current = platformsRef.current.filter((o) => o.x + o.width > cleanupLeft);
-      hazardsRef.current = hazardsRef.current.filter((o) => o.x + o.width > cleanupLeft);
-      obstaclesRef.current = obstaclesRef.current.filter((o) => o.x + o.width > cleanupLeft);
-      pedestriansRef.current = pedestriansRef.current.filter((o) => o.x + o.width > cleanupLeft);
-      carsRef.current = carsRef.current.filter((o) => o.occupied || (o.x + o.width > cleanupLeft && o.x < viewRight));
-      npcsRef.current = npcsRef.current.filter((o) => o.x + o.width > cleanupLeft);
-      itemsRef.current = itemsRef.current.filter((o) => o.x + o.width > cleanupLeft);
+      const CLEANUP_BUFFER_LEFT = virtualWidth * 1.5;
+      const CLEANUP_BUFFER_RIGHT = virtualWidth + GENERATE_AHEAD + CHUNK_LENGTH * 2;
+
+      const cleanupLeft = cameraRef.current.x - CLEANUP_BUFFER_LEFT;
+      const cleanupRight = cameraRef.current.x + CLEANUP_BUFFER_RIGHT;
+
+      leftAirWallXRef.current = Math.max(
+        leftAirWallXRef.current,
+        cleanupLeft + virtualWidth * 0.4,
+      );
+
+      platformsRef.current = platformsRef.current.filter(o => o.x + o.width > cleanupLeft && o.x < cleanupRight);
+      hazardsRef.current = hazardsRef.current.filter(o => o.x + o.width > cleanupLeft && o.x < cleanupRight);
+      obstaclesRef.current = obstaclesRef.current.filter(o => o.x + o.width > cleanupLeft && o.x < cleanupRight);
+      pedestriansRef.current = pedestriansRef.current.filter(o => o.x + o.width > cleanupLeft && o.x < cleanupRight);
+      npcsRef.current = npcsRef.current.filter(o => o.x + o.width > cleanupLeft && o.x < cleanupRight);
+      itemsRef.current = itemsRef.current.filter(o => o.x + o.width > cleanupLeft && o.x < cleanupRight);
+
+      const CAR_CLEANUP_LEFT = cameraRef.current.x - 3000;
+      carsRef.current = carsRef.current.filter(o => o.occupied || (o.x + o.width > CAR_CLEANUP_LEFT && o.x < cleanupRight));
 
       const minCameraX = Math.max(0, leftAirWallXRef.current - virtualWidth * AIR_WALL_CAMERA_SAFE_RATIO);
       const targetCamX = Math.max(minCameraX, getRunCameraX(p.x, virtualWidth));
@@ -2064,7 +2069,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         if (rectsOverlap(getPlayerHitbox(), getNpcTalkZone(ped))) {
           ctx.save();
           ctx.textAlign = 'center';
-          ctx.font = 'bold 12px monospace';
+          ctx.font = 'bold 12px "Space Mono", monospace';
           ctx.fillStyle = '#9ee6ff';
           ctx.fillText(t('prompt_talk_e'), ped.x + ped.width / 2, ped.y - 14 + Math.sin(now / 180) * 3);
           ctx.restore();
@@ -2136,11 +2141,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           ctx.fillStyle = 'rgba(255,255,255,0.55)';
           ctx.fillRect(obstacle.x + 8, obstacle.y + 7, obstacle.width - 16, 3);
           ctx.fillStyle = '#fff7ed';
-          ctx.font = 'bold 18px monospace';
+          ctx.font = 'bold 18px "Space Mono", monospace';
           ctx.textAlign = 'center';
           ctx.fillText('!', obstacle.x + obstacle.width / 2, obstacle.y + 21);
           ctx.fillStyle = '#fde047';
-          ctx.font = 'bold 10px monospace';
+          ctx.font = 'bold 10px "Space Mono", monospace';
           ctx.fillText(t('hint_danger'), obstacle.x + obstacle.width / 2, obstacle.y - 8 + Math.sin(now / 180) * 2);
         }
       });
@@ -2166,12 +2171,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         drawPlaceholderNpc(n, now);
         ctx.save();
         ctx.textAlign = 'center';
-        ctx.font = 'bold 11px monospace';
+        ctx.font = 'bold 11px "Space Mono", monospace';
         ctx.fillStyle = n.isTarget ? '#FFD700' : '#b6c5d6';
         ctx.fillText(n.scanned ? t('status_scanned') : t(n.labelKey), n.x + n.width / 2, n.y - 24);
         if (!n.scanned && n.chatKind === 'miku' && rectsOverlap(getPlayerHitbox(), getNpcTalkZone(n))) {
           ctx.fillStyle = '#67e8f9';
-          ctx.font = 'bold 12px monospace';
+          ctx.font = 'bold 12px "Space Mono", monospace';
           ctx.fillText(t('prompt_miku_chat'), n.x + n.width / 2, n.y - 38 + Math.sin(now / 180) * 3);
         }
         if (!n.scanned) {
@@ -2197,7 +2202,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.textAlign = 'left';
         const label = it.type === 'HEALTH' ? '+' : it.type === 'MAGNET' ? 'M' : it.type === 'SHIELD' ? 'S' : it.type === 'EVIDENCE' ? 'D' : '•';
         ctx.fillStyle = it.type === 'HEALTH' ? '#00cc88' : it.type === 'MAGNET' ? '#9ee6ff' : it.type === 'SHIELD' ? '#66f2c2' : it.type === 'EVIDENCE' ? COLORS.evidence : '#ffe066';
-        ctx.font = 'bold 24px monospace';
+        ctx.font = 'bold 24px "Space Mono", monospace';
         ctx.beginPath();
         ctx.arc(it.x + 15, it.y + 15 + it.floatOffset, 15, 0, Math.PI * 2);
         ctx.fill();
@@ -2284,7 +2289,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         }
         if (canEnter) {
           ctx.textAlign = 'center';
-          ctx.font = 'bold 13px monospace';
+          ctx.font = 'bold 13px "Space Mono", monospace';
           ctx.fillStyle = '#66f2c2';
           ctx.fillText(t('prompt_taxi_board'), car.x + car.width / 2, car.y - 12 + Math.sin(now / 180) * 4);
         }
@@ -2312,7 +2317,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       floatingTextsRef.current.forEach((ft) => {
         if (ft.x < viewLeft || ft.x > viewRight) return;
         ctx.globalAlpha = Math.max(0, Math.min(1, ft.life / 30));
-        ctx.font = `bold ${ft.size}px monospace`;
+        ctx.font = `bold ${ft.size}px "Space Mono", monospace`;
         ctx.textAlign = 'center';
         ctx.fillStyle = ft.color;
         ctx.fillText(ft.text, ft.x, ft.y);
@@ -2344,10 +2349,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.stroke();
       ctx.restore();
       ctx.fillStyle = '#FFD700';
-      ctx.font = 'bold 28px monospace';
+      ctx.font = 'bold 28px "Space Mono", monospace';
       ctx.fillText(`${Math.floor(stats.score).toLocaleString()}`, 44, 62);
       ctx.fillStyle = '#dbeafe';
-      ctx.font = 'bold 12px monospace';
+      ctx.font = 'bold 12px "Space Mono", monospace';
       ctx.fillText(`${t('hud_distance')} ${getDistanceMeters(stats.distance)}m`, 44, 86);
       ctx.fillText(`${t('hud_data')} ${stats.evidence}`, 164, 86);
       ctx.fillText(`${t('hud_near')} ${stats.nearMisses}`, 254, 86);
@@ -2363,11 +2368,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.fillStyle = '#ffb703';
       ctx.fillRect(44, 136, 232 * comboRemain, 8);
       ctx.fillStyle = stats.combo > 0 ? '#ffb703' : '#64748b';
-      ctx.font = 'bold 16px monospace';
+      ctx.font = 'bold 16px "Space Mono", monospace';
       ctx.fillText(`${t('hud_combo')} x${stats.combo}  ${t('hud_mult')} ${stats.multiplier.toFixed(2)}`, 44, 166);
       if (pl.shieldTime > 0 || pl.magnetTime > 0) {
         ctx.fillStyle = '#66f2c2';
-        ctx.font = 'bold 12px monospace';
+        ctx.font = 'bold 12px "Space Mono", monospace';
         const shield = pl.shieldTime > 0 ? `${t('hud_shield')} ${Math.ceil(pl.shieldTime / 1000)}s` : '';
         const magnet = pl.magnetTime > 0 ? `${t('hud_magnet')} ${Math.ceil(pl.magnetTime / 1000)}s` : '';
         ctx.fillText(`${shield} ${magnet}`.trim(), 44, 190);
@@ -2380,7 +2385,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.fillRect(24, 216, 132 * (1 - pl.dashCooldown / DASH_COOLDOWN), 10);
       } else {
         ctx.fillStyle = '#4cc9f0';
-        ctx.font = '12px monospace';
+        ctx.font = '12px "Space Mono", monospace';
         ctx.fillText(t('hud_dash_ready'), 24, 226);
       }
 
@@ -2389,7 +2394,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         const promptY = INTRO_TREE_PROMPT_Y + Math.sin(now / 320) * 2;
         ctx.save();
         ctx.textAlign = 'center';
-        ctx.font = 'bold 13px monospace';
+        ctx.font = 'bold 13px "Space Mono", monospace';
         ctx.lineWidth = 3;
         ctx.strokeStyle = 'rgba(15, 23, 42, 0.66)';
         ctx.fillStyle = 'rgba(236, 253, 245, 0.9)';
