@@ -1960,18 +1960,20 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       groundY: number = VIRTUAL_GROUND_Y,
       alphaScale: number = 1,
       enableBloom: boolean = false,
+      scaleOverride?: number,
     ) => {
       const centerX = x + width / 2;
       const bottomY = y + height;
       const heightAboveGround = groundY - bottomY;
-      const shadowScale = 1 + Math.max(0, heightAboveGround) / 90;
+      const baseScale = 1 + Math.max(0, heightAboveGround) / 90;
+      const shadowScale = scaleOverride ?? baseScale;
 
       const baseAlpha =
         Math.min(0.45 * alphaScale, 0.45) *
         (1 - Math.min(1, heightAboveGround / 180));
 
       const shadowAlpha = enableBloom
-        ? Math.min(0.55, baseAlpha * bloomStrength)
+        ? Math.min(0.35, baseAlpha * bloomStrength)
         : baseAlpha;
 
       const shadowWidth = width * shadowScale * 0.9 * (enableBloom ? bloomStrength : 1);
@@ -2135,15 +2137,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       platformsRef.current.forEach((plat) => {
         if (plat.x + plat.width < viewLeft || plat.x > viewRight) return;
-        if (sceneQualityScaleRef.current >= 0.5) {
-          ctx.save();
-          ctx.globalAlpha = 0.2;
-          ctx.fillStyle = '#000';
-          ctx.beginPath();
-          ctx.ellipse(plat.x + plat.width / 2, plat.y + plat.height + 6, plat.width / 2.2, 6, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-        }
         ctx.fillStyle = 'rgba(41, 220, 220, 0.28)';
         ctx.strokeStyle = 'rgba(130, 255, 255, 0.75)';
         ctx.lineWidth = 2;
@@ -2177,7 +2170,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         if (obstacle.x + obstacle.width < viewLeft || obstacle.x > viewRight) return;
         if (sceneQualityScaleRef.current >= 0.5) {
           if (obstacle.x > viewLeft - 60 && obstacle.x < viewRight + 60) {
-            drawDropShadow(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            const shadowScale = obstacle.type === 'LOW_BAR' ? 0.9 : 1;
+            drawDropShadow(obstacle.x, obstacle.y, obstacle.width, obstacle.height, VIRTUAL_GROUND_Y, 1, false, shadowScale);
           }
         }
         if (obstacle.type === 'BARRIER') {
@@ -2312,7 +2306,15 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       if (!playerInCar && !isIntroWaiting && sceneQualityScaleRef.current >= 0.5) {
         const playerBottomY = pl.y + (pl.isSliding ? 44 : pl.height);
         if (pl.x > viewLeft - 60 && pl.x < viewRight + 60) {
-          drawDropShadow(pl.x, pl.y, pl.width, pl.isSliding ? 44 : pl.height);
+          drawDropShadow(
+            pl.x,
+            pl.y,
+            pl.width,
+            pl.isSliding ? 44 : pl.height,
+            VIRTUAL_GROUND_Y,
+            1,
+            true
+          );
         }
       }
 
