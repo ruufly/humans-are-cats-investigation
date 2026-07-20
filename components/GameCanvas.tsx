@@ -436,7 +436,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const isMidEnd = !isLowEnd && (cores <= 8 || memory <= 8 || shortEdge <= 1080);
 
     if (isLowEnd) {
-      targetFpsRef.current = 45;
+      targetFpsRef.current = 40;
       particleLimitRef.current = 150;
       projectileLimitRef.current = 42;
       sceneQualityScaleRef.current = 0.5;
@@ -1965,24 +1965,43 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const bottomY = y + height;
       const heightAboveGround = groundY - bottomY;
       const shadowScale = 1 + Math.max(0, heightAboveGround) / 90;
-      // const baseAlpha = Math.min(0.45 * alphaScale, 0.45) * (1 - Math.min(1, heightAboveGround / 180));
-      // const shadowAlpha = Math.min(0.7, baseAlpha * bloomStrength);
-      // const shadowWidth = width * shadowScale * 0.9 * bloomStrength;
-      // const shadowHeight = Math.max(4, width * 0.3 * shadowScale * bloomStrength);
-      const shadowAlpha = Math.min(0.45 * alphaScale, 0.45) * (1 - Math.min(1, heightAboveGround / 180));
-      const shadowWidth = width * shadowScale * 0.9;
-      const shadowHeight = Math.max(4, width * 0.3 * shadowScale);
+
+      const baseAlpha =
+        Math.min(0.45 * alphaScale, 0.45) *
+        (1 - Math.min(1, heightAboveGround / 180));
+
+      const shadowAlpha = enableBloom
+        ? Math.min(0.55, baseAlpha * bloomStrength)
+        : baseAlpha;
+
+      const shadowWidth = width * shadowScale * 0.9 * (enableBloom ? bloomStrength : 1);
+      const shadowHeight = Math.max(4, width * 0.3 * shadowScale * (enableBloom ? bloomStrength : 1));
+
       ctx.save();
-      ctx.globalAlpha = Math.max(0.08, shadowAlpha);
-      const blurAmount = Math.max(0, (bloomStrength - 1) * 4);
-      if (enableBloom && blurAmount > 0.5 && sceneQualityScaleRef.current >= 0.5) {
-        ctx.filter = `blur(${blurAmount}px)`;
+      if (enableBloom && shadowAlpha > 0.08) {
+        const layers = 3;
+        for (let i = layers; i >= 1; i--) {
+          const t = i / layers;
+          ctx.globalAlpha = shadowAlpha * (1 - t) * 0.7;
+          ctx.fillStyle = '#000';
+          ctx.beginPath();
+          const w = shadowWidth * (1 + t * 0.3);
+          const h = shadowHeight * (1 + t * 0.3);
+          ctx.ellipse(centerX, groundY, w / 2, h / 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = shadowAlpha * 0.85;
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.ellipse(centerX, groundY, shadowWidth / 2, shadowHeight / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.globalAlpha = Math.max(0.08, shadowAlpha);
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.ellipse(centerX, groundY, shadowWidth / 2, shadowHeight / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
       }
-      ctx.fillStyle = '#000000';
-      ctx.beginPath();
-      ctx.ellipse(centerX, groundY, shadowWidth / 2, shadowHeight / 2, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.filter = 'none';
       ctx.restore();
     };
 
@@ -2091,7 +2110,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       pedestriansRef.current.forEach((ped) => {
         if (ped.x + ped.width < viewLeft || ped.x > viewRight) return;
         if (sceneQualityScaleRef.current >= 0.5) {
-          drawDropShadow(ped.x, ped.y, ped.width, ped.height);
+          if (ped.x > viewLeft - 60 && ped.x < viewRight + 60) {
+            drawDropShadow(ped.x, ped.y, ped.width, ped.height);
+          }
         }
         const frameCount = ped.spriteSet === 'npc' ? 4 : 8;
         const frame = Math.floor((now + ped.frameOffset) / 130) % frameCount;
@@ -2155,7 +2176,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       obstaclesRef.current.forEach((obstacle) => {
         if (obstacle.x + obstacle.width < viewLeft || obstacle.x > viewRight) return;
         if (sceneQualityScaleRef.current >= 0.5) {
-          drawDropShadow(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+          if (obstacle.x > viewLeft - 60 && obstacle.x < viewRight + 60) {
+            drawDropShadow(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+          }
         }
         if (obstacle.type === 'BARRIER') {
           ctx.fillStyle = '#f97316';
@@ -2288,7 +2311,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       if (!playerInCar && !isIntroWaiting && sceneQualityScaleRef.current >= 0.5) {
         const playerBottomY = pl.y + (pl.isSliding ? 44 : pl.height);
-        drawDropShadow(pl.x, pl.y, pl.width, pl.isSliding ? 44 : pl.height);
+        if (pl.x > viewLeft - 60 && pl.x < viewRight + 60) {
+          drawDropShadow(pl.x, pl.y, pl.width, pl.isSliding ? 44 : pl.height);
+        }
       }
 
       if (pl.isDashing) {
@@ -2343,7 +2368,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     carsRef.current.forEach((car) => {
       if (car.x + car.width < viewLeft || car.x > viewRight) return;
       if (sceneQualityScaleRef.current >= 0.5) {
-        drawDropShadow(car.x, car.y, car.width, car.height, car.y + car.height);
+        if (car.x > viewLeft - 60 && car.x < viewRight + 60) {
+          drawDropShadow(car.x, car.y, car.width, car.height, car.y + car.height);
+        }
       }
       const canEnter = car.canRide && !car.occupied && !car.used && rectsOverlap(getPlayerHitbox(), getTaxiBoardingZone(car));
       ctx.save();
